@@ -1,5 +1,15 @@
 const API_BASE = "https://api.openings.link";
 
+/** Only allow proxying to known public API path prefixes. */
+const ALLOWED_PREFIXES = [
+  "v1/salons",
+  "v1/locations",
+  "v1/openings",
+  "v1/appointments",
+  "v1/verifications",
+  "v1/customers",
+];
+
 /** Headers that should NOT be forwarded to the upstream API. */
 const STRIP_HEADERS = new Set([
   "host",
@@ -14,8 +24,14 @@ async function handler(
   { params }: { params: Promise<{ path: string[] }> },
 ) {
   const { path } = await params;
+  const joined = path.join("/");
+
+  if (!ALLOWED_PREFIXES.some((p) => joined.startsWith(p))) {
+    return new Response("Not found", { status: 404 });
+  }
+
   const url = new URL(req.url);
-  const upstream = `${API_BASE}/${path.join("/")}${url.search}`;
+  const upstream = `${API_BASE}/${joined}${url.search}`;
 
   // Forward headers, stripping browser-only ones that trigger CORS rejection
   const headers = new Headers();
