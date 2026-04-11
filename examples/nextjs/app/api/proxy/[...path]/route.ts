@@ -1,0 +1,50 @@
+const API_BASE = "https://api.openings.link";
+
+/** Headers that should NOT be forwarded to the upstream API. */
+const STRIP_HEADERS = new Set([
+  "host",
+  "origin",
+  "referer",
+  "connection",
+  "accept-encoding",
+]);
+
+async function handler(
+  req: Request,
+  { params }: { params: Promise<{ path: string[] }> },
+) {
+  const { path } = await params;
+  const url = new URL(req.url);
+  const upstream = `${API_BASE}/${path.join("/")}${url.search}`;
+
+  // Forward headers, stripping browser-only ones that trigger CORS rejection
+  const headers = new Headers();
+  req.headers.forEach((value, key) => {
+    if (!STRIP_HEADERS.has(key.toLowerCase())) {
+      headers.set(key, value);
+    }
+  });
+
+  const body = req.body ? await req.text() : undefined;
+
+  const res = await fetch(upstream, {
+    method: req.method,
+    headers,
+    body,
+  });
+
+  const responseBody = await res.text();
+
+  return new Response(responseBody, {
+    status: res.status,
+    headers: {
+      "content-type": res.headers.get("content-type") ?? "application/json",
+    },
+  });
+}
+
+export const GET = handler;
+export const POST = handler;
+export const PUT = handler;
+export const PATCH = handler;
+export const DELETE = handler;

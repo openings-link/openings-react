@@ -1,0 +1,12 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist",
+    "paths": {
+      "@openings/react": ["../react/src/index.ts"]
+    }
+  },
+  "include": ["src"],
+  "references": [{ "path": "../react" }]
+}

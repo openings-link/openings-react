@@ -1,0 +1,52 @@
+{
+  "name": "@openings/react",
+  "version": "0.1.0",
+  "description": "Headless React hooks for building booking interfaces with Openings. Zero dependencies.",
+  "author": "Openings <dev@openings.link> (https://openings.link)",
+  "type": "module",
+  "license": "MIT",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json --watch",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "peerDependencies": {
+    "react": ">=18.0.0"
+  },
+  "devDependencies": {
+    "react": "^18.3.0",
+    "typescript": "^5.7.0"
+  },
+  "keywords": [
+    "openings",
+    "booking",
+    "appointments",
+    "scheduling",
+    "react",
+    "hooks"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/openings-link/openings-react",
+    "directory": "packages/react"
+  },
+  "bugs": {
+    "url": "https://github.com/openings-link/openings-react/issues"
+  },
+  "homepage": "https://github.com/openings-link/openings-react#readme"
+}
