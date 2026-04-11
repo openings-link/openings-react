@@ -4,7 +4,7 @@
     "rootDir": "src",
     "outDir": "dist",
     "paths": {
-      "@openings/react": ["../react/src/index.ts"]
+      "@openings-link/react": ["../react/src/index.ts"]
     }
   },
   "include": ["src"],

@@ -8,8 +8,8 @@
     "start": "next start -p 3100"
   },
   "dependencies": {
-    "@openings/react": "workspace:*",
-    "@openings/react-ui": "workspace:*",
+    "@openings-link/react": "workspace:*",
+    "@openings-link/react-ui": "workspace:*",
     "next": "^15.0.0",
     "react": "^18.3.0",
     "react-dom": "^18.3.0"

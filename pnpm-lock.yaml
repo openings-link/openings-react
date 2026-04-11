@@ -26,10 +26,10 @@ importers:
 
   examples/nextjs:
     dependencies:
-      '@openings/react':
+      '@openings-link/react':
         specifier: workspace:*
         version: link:../../packages/react
-      '@openings/react-ui':
+      '@openings-link/react-ui':
         specifier: workspace:*
         version: link:../../packages/react-ui
       next:
@@ -66,7 +66,7 @@ importers:
 
   packages/react-ui:
     dependencies:
-      '@openings/react':
+      '@openings-link/react':
         specifier: workspace:*
         version: link:../react
     devDependencies:

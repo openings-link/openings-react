@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useBooking, useBusiness } from "@openings/react";
+import { useBooking, useBusiness } from "@openings-link/react";
 import type { BookingLabels } from "../labels";
 import { PhoneInput } from "./PhoneInput";
 

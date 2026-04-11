@@ -7,7 +7,7 @@ import {
   type ApiClient,
   type MemberOpenings,
   type SelectedService,
-} from "@openings/react";
+} from "@openings-link/react";
 import type { ReactNode } from "react";
 import { themeToCssVars, type BookingTheme } from "./theme";
 import { defaultLabels, type BookingLabels } from "./labels";

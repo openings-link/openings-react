@@ -21,16 +21,16 @@ Openings is built around the way real service businesses actually work:
 - **One widget, every configuration.** The same `<BookingWidget>` handles a solo
   operator (one schedule, one member), a multi-location chain, or a single staff
   member's personal booking page — controlled entirely by props.
-- **Headless-first.** `@openings/react` gives you hooks and state with zero UI
-  opinions. `@openings/react-ui` gives you a themed drop-in. Use either, or
+- **Headless-first.** `@openings-link/react` gives you hooks and state with zero UI
+  opinions. `@openings-link/react-ui` gives you a themed drop-in. Use either, or
   both.
 
 ## Packages
 
 | Package                                   | Description                          | Size   |
 | ----------------------------------------- | ------------------------------------ | ------ |
-| [`@openings/react`](packages/react)       | Headless hooks, state machine, types | <5 KB  |
-| [`@openings/react-ui`](packages/react-ui) | Themed, drop-in booking components   | ~15 KB |
+| [`@openings-link/react`](packages/react)       | Headless hooks, state machine, types | <5 KB  |
+| [`@openings-link/react-ui`](packages/react-ui) | Themed, drop-in booking components   | ~15 KB |
 
 ## Core Concepts
 
@@ -123,13 +123,13 @@ The booking flow adapts based on what entry point you configure:
 ## Quick Start
 
 ```bash
-npm install @openings/react @openings/react-ui
+npm install @openings-link/react @openings-link/react-ui
 ```
 
 ### Drop-in Widget
 
 ```tsx
-import { BookingWidget } from "@openings/react-ui";
+import { BookingWidget } from "@openings-link/react-ui";
 
 function App() {
   return (
@@ -155,7 +155,7 @@ function App() {
 ### Headless (Build Your Own UI)
 
 ```tsx
-import { OpeningsProvider, useBookingFlow } from "@openings/react";
+import { OpeningsProvider, useBookingFlow } from "@openings-link/react";
 
 function App() {
   return (

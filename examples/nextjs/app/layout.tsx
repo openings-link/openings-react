@@ -3,7 +3,7 @@ import { Header } from "./Header";
 
 export const metadata: Metadata = {
   title: "Openings React — Next.js Example",
-  description: "Demo of @openings/react and @openings/react-ui",
+  description: "Demo of @openings-link/react and @openings-link/react-ui",
 };
 
 export default function RootLayout({

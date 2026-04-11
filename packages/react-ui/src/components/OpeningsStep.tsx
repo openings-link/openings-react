@@ -8,7 +8,7 @@ import {
   formatTime,
   type SelectedService,
   type MemberOpenings,
-} from "@openings/react";
+} from "@openings-link/react";
 import type { BookingLabels } from "../labels";
 
 interface Props {

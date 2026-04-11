@@ -4,7 +4,7 @@ import {
   formatPrice,
   formatTime,
   type ServiceRequestResult,
-} from "@openings/react";
+} from "@openings-link/react";
 import type { BookingLabels } from "../labels";
 
 interface Props {

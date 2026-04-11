@@ -1,4 +1,4 @@
-import { useSchedules, useBusiness } from "@openings/react";
+import { useSchedules, useBusiness } from "@openings-link/react";
 import type { BookingLabels } from "../labels";
 
 interface Props {

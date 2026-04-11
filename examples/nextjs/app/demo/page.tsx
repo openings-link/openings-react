@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { BookingWidget } from "@openings/react-ui";
+import { BookingWidget } from "@openings-link/react-ui";
 
 const demos = [
   {

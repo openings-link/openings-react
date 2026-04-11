@@ -1,4 +1,4 @@
-import type { ApiClient } from "@openings/react";
+import type { ApiClient } from "@openings-link/react";
 
 /* ─────────────────────────────────────────────────
  * Shared fixture data — Demo Barbershop

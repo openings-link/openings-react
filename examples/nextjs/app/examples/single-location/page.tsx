@@ -1,9 +1,9 @@
 "use client";
 
-import { BookingWidget } from "@openings/react-ui";
+import { BookingWidget } from "@openings-link/react-ui";
 import { singleLocationClient } from "../../mockClient";
 
-const CODE = `import { BookingWidget } from "@openings/react-ui";
+const CODE = `import { BookingWidget } from "@openings-link/react-ui";
 
 // When a business has only one schedule, the widget
 // skips the location picker and goes straight to booking.

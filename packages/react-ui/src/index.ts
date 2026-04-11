@@ -14,4 +14,4 @@ export { themeToCssVars, defaultTheme, type BookingTheme } from "./theme";
 export { defaultLabels, type BookingLabels } from "./labels";
 
 // ── Re-export provider for composable usage ──
-export { OpeningsProvider } from "@openings/react";
+export { OpeningsProvider } from "@openings-link/react";

@@ -19,8 +19,8 @@
       }
     ],
     "paths": {
-      "@openings/react": ["../../packages/react/src/index.ts"],
-      "@openings/react-ui": ["../../packages/react-ui/src/index.ts"]
+      "@openings-link/react": ["../../packages/react/src/index.ts"],
+      "@openings-link/react-ui": ["../../packages/react-ui/src/index.ts"]
     }
   },
   "include": ["**/*.ts", "**/*.tsx", "next-env.d.ts", ".next/types/**/*.ts"],

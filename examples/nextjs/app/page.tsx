@@ -1,4 +1,4 @@
-const CODE_WIDGET = `import { BookingWidget } from "@openings/react-ui";
+const CODE_WIDGET = `import { BookingWidget } from "@openings-link/react-ui";
 
 <BookingWidget
   business="your-business-handle"
@@ -10,7 +10,7 @@ const CODE_WIDGET = `import { BookingWidget } from "@openings/react-ui";
   }}
 />`;
 
-const CODE_HEADLESS = `import { OpeningsProvider, useBookingFlow } from "@openings/react";
+const CODE_HEADLESS = `import { OpeningsProvider, useBookingFlow } from "@openings-link/react";
 
 <OpeningsProvider business="your-business-handle">
   <MyBookingUI />
@@ -83,7 +83,7 @@ const code: React.CSSProperties = {
 export default function DocsPage() {
   return (
     <div>
-      <h1 style={{ marginBottom: 4 }}>@openings/react</h1>
+      <h1 style={{ marginBottom: 4 }}>@openings-link/react</h1>
       <p style={{ ...p, fontSize: 17, color: "#666" }}>
         Open-source React library for building booking interfaces with{" "}
         <a href="https://openings.link" style={{ color: "#8B5CF6" }}>
@@ -116,23 +116,23 @@ export default function DocsPage() {
           page — controlled entirely by props.
         </li>
         <li>
-          <strong>Headless-first.</strong> <code>@openings/react</code> gives
+          <strong>Headless-first.</strong> <code>@openings-link/react</code> gives
           you hooks and state with zero UI opinions.{" "}
-          <code>@openings/react-ui</code> gives you a themed drop-in.
+          <code>@openings-link/react-ui</code> gives you a themed drop-in.
         </li>
       </ul>
 
       {/* ── Install ── */}
       <h2 style={h2}>Installation</h2>
       <pre style={code}>
-        <code>npm install @openings/react @openings/react-ui</code>
+        <code>npm install @openings-link/react @openings-link/react-ui</code>
       </pre>
       <p style={p}>
-        <strong>@openings/react</strong> — Headless hooks, state machine, and
+        <strong>@openings-link/react</strong> — Headless hooks, state machine, and
         types. Zero dependencies, React 18+ peer dep only.
       </p>
       <p style={p}>
-        <strong>@openings/react-ui</strong> — Themed, drop-in booking components
+        <strong>@openings-link/react-ui</strong> — Themed, drop-in booking components
         built on the headless core. Styled with CSS custom properties (no
         Tailwind, no CSS modules).
       </p>

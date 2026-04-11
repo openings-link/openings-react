@@ -1,4 +1,4 @@
-/* ─── Public types for @openings/react ─── */
+/* ─── Public types for @openings-link/react ─── */
 
 /* ─── Business ─── */
 

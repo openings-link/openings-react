@@ -1,18 +1,18 @@
-# Copilot Instructions — @openings/react
+# Copilot Instructions — @openings-link/react
 
 ## Overview
 
 Open-source React booking library for the [Openings](https://openings.link)
 platform. Two packages:
 
-- `@openings/react` — headless hooks, state machine, types (zero deps, React
+- `@openings-link/react` — headless hooks, state machine, types (zero deps, React
   18+ peer)
-- `@openings/react-ui` — themed, composable booking components built on the
+- `@openings-link/react-ui` — themed, composable booking components built on the
   headless core
 
 ## Key Rules
 
-- **Zero external dependencies** in `@openings/react`. Only React 18+ as a peer
+- **Zero external dependencies** in `@openings-link/react`. Only React 18+ as a peer
   dep.
 - **All API calls** go through `packages/react/src/api.ts` — plain `fetch`, no
   SDK.
@@ -21,7 +21,7 @@ platform. Two packages:
 - The library talks to the Openings public API at `https://api.openings.link`.
 - **No API keys** — the public API is open by business handle. Rate limiting is
   server-side.
-- **CSS variables** for theming in `@openings/react-ui` (no Tailwind, no CSS
+- **CSS variables** for theming in `@openings-link/react-ui` (no Tailwind, no CSS
   modules).
 - All CSS custom properties are prefixed `--openings-*`.
 - **MIT licensed** — all code must be original.
@@ -30,7 +30,7 @@ platform. Two packages:
 
 ```
 packages/
-  react/           # @openings/react (headless core)
+  react/           # @openings-link/react (headless core)
     src/
       api.ts       # fetch wrapper + API client interface
       context.tsx  # OpeningsProvider + BookingContext
@@ -39,7 +39,7 @@ packages/
       types.ts     # public types
       hooks/       # individual hooks
       index.ts     # barrel export
-  react-ui/        # @openings/react-ui (styled layer)
+  react-ui/        # @openings-link/react-ui (styled layer)
     src/
       BookingWidget.tsx   # drop-in widget
       theme.ts            # CSS variable system

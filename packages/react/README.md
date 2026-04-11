@@ -1,4 +1,4 @@
-# @openings/react
+# @openings-link/react
 
 Headless React hooks for building booking interfaces with the
 [Openings](https://openings.link) platform.
@@ -8,15 +8,15 @@ Zero dependencies. React 18+ only.
 ## Install
 
 ```bash
-npm install @openings/react
+npm install @openings-link/react
 # or
-pnpm add @openings/react
+pnpm add @openings-link/react
 ```
 
 ## Quick Start
 
 ```tsx
-import { OpeningsProvider, useBookingFlow } from "@openings/react";
+import { OpeningsProvider, useBookingFlow } from "@openings-link/react";
 
 function App() {
   return (
@@ -77,7 +77,7 @@ function BookingFlow() {
 ## Utilities
 
 ```tsx
-import { formatTime, formatPrice, formatDuration } from "@openings/react";
+import { formatTime, formatPrice, formatDuration } from "@openings-link/react";
 
 formatTime("14:30"); // "2:30 pm"
 formatPrice(50); // "$50"
@@ -89,7 +89,7 @@ formatDuration(90); // "1h 30m"
 For testing or custom authentication, provide your own API client:
 
 ```tsx
-import { OpeningsProvider, createApiClient } from "@openings/react";
+import { OpeningsProvider, createApiClient } from "@openings-link/react";
 
 const client = createApiClient("https://api.openings.link");
 

@@ -1,5 +1,5 @@
 {
-  "name": "@openings/react",
+  "name": "@openings-link/react",
   "version": "0.1.0",
   "description": "Headless React hooks for building booking interfaces with Openings. Zero dependencies.",
   "author": "Openings <dev@openings.link> (https://openings.link)",

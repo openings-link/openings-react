@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from "react";
-import { useServiceRequest, formatPrice } from "@openings/react";
+import { useServiceRequest, formatPrice } from "@openings-link/react";
 import type { BookingLabels } from "../labels";
 
 interface Props {

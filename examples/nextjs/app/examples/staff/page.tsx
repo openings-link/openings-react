@@ -1,9 +1,9 @@
 "use client";
 
-import { BookingWidget } from "@openings/react-ui";
+import { BookingWidget } from "@openings-link/react-ui";
 import { multiLocationClient } from "../../mockClient";
 
-const CODE = `import { BookingWidget } from "@openings/react-ui";
+const CODE = `import { BookingWidget } from "@openings-link/react-ui";
 
 // Pass memberId to open a specific staff member's booking page.
 // Shows only their services and availability across all locations.
