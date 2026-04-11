@@ -3,6 +3,8 @@
 Open-source React library for building booking interfaces with
 [Openings](https://www.openings.link).
 
+**[Live demo → react.openings.link](https://react.openings.link)**
+
 ## Why Openings?
 
 Most booking platforms treat a business as a flat list of time slots. That works
@@ -187,7 +189,7 @@ function MyCustomBookingUI() {
 
 ## Examples
 
-Run the Next.js example app to see all entry points in action:
+Or run locally:
 
 ```bash
 cd examples/nextjs
