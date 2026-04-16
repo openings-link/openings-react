@@ -21,14 +21,14 @@ Openings is built around the way real service businesses actually work:
 - **One widget, every configuration.** The same `<BookingWidget>` handles a solo
   operator (one schedule, one member), a multi-location chain, or a single staff
   member's personal booking page — controlled entirely by props.
-- **Headless-first.** `@openings-link/react` gives you hooks and state with zero UI
-  opinions. `@openings-link/react-ui` gives you a themed drop-in. Use either, or
-  both.
+- **Headless-first.** `@openings-link/react` gives you hooks and state with zero
+  UI opinions. `@openings-link/react-ui` gives you a themed drop-in. Use either,
+  or both.
 
 ## Packages
 
-| Package                                   | Description                          | Size   |
-| ----------------------------------------- | ------------------------------------ | ------ |
+| Package                                        | Description                          | Size   |
+| ---------------------------------------------- | ------------------------------------ | ------ |
 | [`@openings-link/react`](packages/react)       | Headless hooks, state machine, types | <5 KB  |
 | [`@openings-link/react-ui`](packages/react-ui) | Themed, drop-in booking components   | ~15 KB |
 
@@ -125,6 +125,26 @@ The booking flow adapts based on what entry point you configure:
 ```bash
 npm install @openings-link/react @openings-link/react-ui
 ```
+
+## CORS for npm Consumers
+
+If your app calls https://api.openings.link directly from the browser, CORS may
+block requests depending on your domain and environment.
+
+Recommended setup for third-party apps:
+
+1. Add a same-origin proxy endpoint in your app (for example, /api/openings/\*).
+2. Forward requests server-side to https://api.openings.link.
+3. Pass apiBase="/api/openings" to OpeningsProvider or BookingWidget.
+
+This avoids browser CORS issues and is the most reliable setup for npm users
+across Next.js, Remix, Nuxt, SvelteKit, and custom servers.
+
+Use direct https://api.openings.link only when your domain is already allowed by
+the API CORS policy.
+
+See [docs/proxy-templates.md](docs/proxy-templates.md) for the canonical
+Next.js, Remix, and Express proxy templates.
 
 ### Drop-in Widget
 

@@ -34,6 +34,11 @@ function MyBookingUI() {
   } = useBookingFlow();
 }`;
 
+const CODE_PROXY_USAGE = `<BookingWidget
+  business="your-business-handle"
+  apiBase="/api/proxy"
+/>`;
+
 const h2: React.CSSProperties = {
   fontSize: 20,
   fontWeight: 700,
@@ -116,8 +121,8 @@ export default function DocsPage() {
           page — controlled entirely by props.
         </li>
         <li>
-          <strong>Headless-first.</strong> <code>@openings-link/react</code> gives
-          you hooks and state with zero UI opinions.{" "}
+          <strong>Headless-first.</strong> <code>@openings-link/react</code>{" "}
+          gives you hooks and state with zero UI opinions.{" "}
           <code>@openings-link/react-ui</code> gives you a themed drop-in.
         </li>
       </ul>
@@ -128,13 +133,38 @@ export default function DocsPage() {
         <code>npm install @openings-link/react @openings-link/react-ui</code>
       </pre>
       <p style={p}>
-        <strong>@openings-link/react</strong> — Headless hooks, state machine, and
-        types. Zero dependencies, React 18+ peer dep only.
+        <strong>@openings-link/react</strong> — Headless hooks, state machine,
+        and types. Zero dependencies, React 18+ peer dep only.
       </p>
       <p style={p}>
-        <strong>@openings-link/react-ui</strong> — Themed, drop-in booking components
-        built on the headless core. Styled with CSS custom properties (no
-        Tailwind, no CSS modules).
+        <strong>@openings-link/react-ui</strong> — Themed, drop-in booking
+        components built on the headless core. Styled with CSS custom properties
+        (no Tailwind, no CSS modules).
+      </p>
+
+      {/* ── CORS / Proxy ── */}
+      <h2 style={h2}>Using the Real API (CORS-safe)</h2>
+      <p style={p}>
+        This example app includes a same-origin proxy route at
+        <code> /api/proxy/* </code> so browser requests do not hit
+        <code> https://api.openings.link </code> directly.
+      </p>
+      <p style={p}>
+        When integrating in your own app, set <code>apiBase</code> to your proxy
+        path:
+      </p>
+      <pre style={code}>
+        <code>{CODE_PROXY_USAGE}</code>
+      </pre>
+      <p style={p}>
+        For full templates (Next.js, Remix, Express), see
+        <a
+          href="https://github.com/openings-link/openings-react/blob/main/docs/proxy-templates.md"
+          style={{ color: "#8B5CF6", marginLeft: 6 }}
+        >
+          proxy-templates.md
+        </a>
+        .
       </p>
 
       {/* ── Quick start ── */}

@@ -34,6 +34,22 @@ function App() {
 }
 ```
 
+## CORS and apiBase
+
+BookingWidget defaults to apiBase="https://api.openings.link".
+
+If your frontend runs on a third-party domain, prefer a same-origin proxy route
+in your app and point the widget to that proxy:
+
+```tsx
+<BookingWidget business="your-business-handle" apiBase="/api/openings" />
+```
+
+This is the recommended setup for npm users to avoid browser CORS issues.
+
+Full proxy templates:
+https://github.com/openings-link/openings-react/blob/main/docs/proxy-templates.md
+
 ## Props
 
 | Prop                    | Type                         | Description                                            |

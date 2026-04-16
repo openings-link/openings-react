@@ -62,6 +62,25 @@ function BookingFlow() {
 }
 ```
 
+## CORS and apiBase
+
+OpeningsProvider defaults to apiBase="https://api.openings.link".
+
+For third-party apps, the recommended production setup is a same-origin proxy in
+your app (for example /api/openings/\*) and then:
+
+```tsx
+<OpeningsProvider business="your-business-handle" apiBase="/api/openings">
+  <BookingFlow />
+</OpeningsProvider>
+```
+
+This removes browser CORS dependency from your frontend integration and works
+reliably across local and production environments.
+
+Full proxy templates:
+https://github.com/openings-link/openings-react/blob/main/docs/proxy-templates.md
+
 ## Hooks
 
 | Hook                  | Purpose                                       |
