@@ -1,21 +1,48 @@
 "use client";
 
+import { useState } from "react";
 import { BookingWidget } from "@openings-link/react-ui";
+import type { MemberOpenings } from "@openings-link/react";
 import { multiLocationClient } from "../../mockClient";
+import { StaffInfoModal } from "../../StaffInfoModal";
 
-const CODE = `import { BookingWidget } from "@openings-link/react-ui";
+const CODE = `import { useState } from "react";
+import { BookingWidget } from "@openings-link/react-ui";
+import type { MemberOpenings } from "@openings-link/react";
 
-<BookingWidget
-  business="demo"
-  theme={{ accent: "#8B5CF6", radius: 10 }}
-  on={{
-    onBookingComplete: (result) => {
-      console.log("Booked!", result);
-    },
-  }}
-/>`;
+function MyBookingPage() {
+  // Pass \`onStaffInfoClick\` to opt into the info icon next to each
+  // staff member. When the user clicks it, you render your own
+  // mini-profile UI — bio, photos, reviews, etc.
+  //
+  // Omit the prop and no info icon is rendered.
+  const [infoMember, setInfoMember] = useState<MemberOpenings | null>(null);
+
+  return (
+    <>
+      <BookingWidget
+        business="demo"
+        theme={{ accent: "#8B5CF6", radius: 10 }}
+        onStaffInfoClick={setInfoMember}
+        on={{
+          onBookingComplete: (result) => {
+            console.log("Booked!", result);
+          },
+        }}
+      />
+      {infoMember && (
+        <MyStaffProfileModal
+          member={infoMember}
+          onClose={() => setInfoMember(null)}
+        />
+      )}
+    </>
+  );
+}`;
 
 export default function MultiLocationPage() {
+  const [infoMember, setInfoMember] = useState<MemberOpenings | null>(null);
+
   return (
     <div>
       <h1>Multi-location Business</h1>
@@ -25,8 +52,8 @@ export default function MultiLocationPage() {
         available there.
       </p>
       <p style={{ color: "#999", fontSize: 13, marginBottom: 24 }}>
-        Demo Barbershop has 2 locations in NYC. Each location has different
-        barbers assigned to it.
+        Demo Barbershop has 2 locations in NYC. Click the info icon next to a
+        staff member to see an example host-supplied mini-profile modal.
       </p>
       <div
         style={{
@@ -40,6 +67,7 @@ export default function MultiLocationPage() {
           business="demo"
           apiClient={multiLocationClient}
           theme={{ accent: "#8B5CF6", radius: 10 }}
+          onStaffInfoClick={setInfoMember}
           on={{
             onBookingComplete: (result) => {
               console.log("Booked!", result);
@@ -47,6 +75,8 @@ export default function MultiLocationPage() {
           }}
         />
       </div>
+
+      <StaffInfoModal member={infoMember} onClose={() => setInfoMember(null)} />
 
       <details style={{ marginTop: 32 }}>
         <summary

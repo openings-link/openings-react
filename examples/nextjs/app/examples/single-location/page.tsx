@@ -1,23 +1,46 @@
 "use client";
 
+import { useState } from "react";
 import { BookingWidget } from "@openings-link/react-ui";
+import type { MemberOpenings } from "@openings-link/react";
 import { singleLocationClient } from "../../mockClient";
+import { StaffInfoModal } from "../../StaffInfoModal";
 
-const CODE = `import { BookingWidget } from "@openings-link/react-ui";
+const CODE = `import { useState } from "react";
+import { BookingWidget } from "@openings-link/react-ui";
+import type { MemberOpenings } from "@openings-link/react";
 
-// When a business has only one schedule, the widget
-// skips the location picker and goes straight to booking.
-<BookingWidget
-  business="demo"
-  theme={{ accent: "#059669" }}
-  on={{
-    onBookingComplete: (result) => {
-      console.log("Booked!", result);
-    },
-  }}
-/>`;
+function MyBookingPage() {
+  // \`onStaffInfoClick\` lets you plug in your own staff mini-profile.
+  // Pass a handler → info icon appears next to each staff member.
+  // Omit the prop → no icon is rendered.
+  const [infoMember, setInfoMember] = useState<MemberOpenings | null>(null);
+
+  return (
+    <>
+      <BookingWidget
+        business="demo"
+        theme={{ accent: "#059669" }}
+        onStaffInfoClick={setInfoMember}
+        on={{
+          onBookingComplete: (result) => {
+            console.log("Booked!", result);
+          },
+        }}
+      />
+      {infoMember && (
+        <MyStaffProfileModal
+          member={infoMember}
+          onClose={() => setInfoMember(null)}
+        />
+      )}
+    </>
+  );
+}`;
 
 export default function SingleLocationPage() {
+  const [infoMember, setInfoMember] = useState<MemberOpenings | null>(null);
+
   return (
     <div>
       <h1>Single-location Business</h1>
@@ -27,8 +50,9 @@ export default function SingleLocationPage() {
         service and time.
       </p>
       <p style={{ color: "#999", fontSize: 13, marginBottom: 24 }}>
-        Same barbershop, but only the East Village location is returned. The
-        location picker is skipped automatically.
+        Same barbershop, but only the East Village location is returned. Click
+        the info icon next to a staff member to see an example host-supplied
+        mini-profile modal.
       </p>
       <div
         style={{
@@ -42,6 +66,7 @@ export default function SingleLocationPage() {
           business="demo"
           apiClient={singleLocationClient}
           theme={{ accent: "#059669" }}
+          onStaffInfoClick={setInfoMember}
           on={{
             onBookingComplete: (result) => {
               console.log("Booked!", result);
@@ -49,6 +74,8 @@ export default function SingleLocationPage() {
           }}
         />
       </div>
+
+      <StaffInfoModal member={infoMember} onClose={() => setInfoMember(null)} />
 
       <details style={{ marginTop: 32 }}>
         <summary
