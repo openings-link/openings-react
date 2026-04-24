@@ -59,5 +59,6 @@ jobs:
           esac
 
       - name: Publish
-        working-directory: ${{ steps.tag.outputs.dir || steps.dispatch.outputs.dir }}
+        working-directory:
+          ${{ steps.tag.outputs.dir || steps.dispatch.outputs.dir }}
         run: npm publish --access public --provenance
