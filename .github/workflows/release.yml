@@ -33,7 +33,7 @@ jobs:
           registry-url: https://registry.npmjs.org
 
       - name: Upgrade npm (trusted publisher OIDC requires >= 11.5.1)
-        run: npm install -g npm@latest
+        run: npm install -g npm@latest --force
 
       - name: Install
         run: pnpm install --frozen-lockfile
