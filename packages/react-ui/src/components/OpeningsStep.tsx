@@ -18,6 +18,62 @@ interface Props {
     member: MemberOpenings,
     services: SelectedService[],
   ) => void;
+  onStaffInfoClick?: (member: MemberOpenings) => void;
+}
+
+/* ── Staff info icon button ── */
+
+function StaffInfoButton({
+  member,
+  label,
+  onClick,
+}: {
+  member: MemberOpenings;
+  label: string;
+  onClick: (member: MemberOpenings) => void;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      title={label}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick(member);
+      }}
+      style={{
+        width: 24,
+        height: 24,
+        padding: 0,
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        border: "none",
+        borderRadius: "50%",
+        background: "transparent",
+        color: "var(--openings-muted, #888)",
+        cursor: "pointer",
+        flexShrink: 0,
+      }}
+    >
+      <svg
+        width="16"
+        height="16"
+        viewBox="0 0 16 16"
+        fill="none"
+        aria-hidden="true"
+      >
+        <circle cx="8" cy="8" r="7" stroke="currentColor" strokeWidth="1.3" />
+        <circle cx="8" cy="4.5" r="0.9" fill="currentColor" />
+        <path
+          d="M8 7v5"
+          stroke="currentColor"
+          strokeWidth="1.3"
+          strokeLinecap="round"
+        />
+      </svg>
+    </button>
+  );
 }
 
 /* ── Date helpers ── */
@@ -275,6 +331,7 @@ function CombineServicesPanel({
   onSubmit,
   onClose,
   labels,
+  showPricing,
 }: {
   services: {
     id: string;
@@ -289,6 +346,7 @@ function CombineServicesPanel({
   onSubmit: (services: SelectedService[]) => void;
   onClose: () => void;
   labels: BookingLabels;
+  showPricing: boolean;
 }) {
   const [selected, setSelected] = useState<SelectedService[]>(
     () => initialSelection,
@@ -381,12 +439,17 @@ function CombineServicesPanel({
             >
               <div>
                 <div style={{ fontSize: 14, fontWeight: 500 }}>{svc.title}</div>
-                <div
-                  style={{ fontSize: 12, color: "var(--openings-muted, #666)" }}
-                >
-                  {formatPrice(svc.price)}
-                  {svc.up ? "+" : ""} · {formatDuration(svc.duration)}
-                </div>
+                {showPricing && (
+                  <div
+                    style={{
+                      fontSize: 12,
+                      color: "var(--openings-muted, #666)",
+                    }}
+                  >
+                    {formatPrice(svc.price)}
+                    {svc.up ? "+" : ""} · {formatDuration(svc.duration)}
+                  </div>
+                )}
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <button
@@ -456,8 +519,13 @@ function CombineServicesPanel({
         }}
       >
         <span style={{ fontSize: 13, color: "var(--openings-muted, #666)" }}>
-          {selected.length} service{selected.length !== 1 ? "s" : ""} ·{" "}
-          {formatPrice(totalPrice)} · {formatDuration(totalDuration)}
+          {selected.length} service{selected.length !== 1 ? "s" : ""}
+          {showPricing && (
+            <>
+              {" "}
+              · {formatPrice(totalPrice)} · {formatDuration(totalDuration)}
+            </>
+          )}
         </span>
         <button
           type="button"
@@ -490,11 +558,10 @@ export function OpeningsStep({
   labels,
   onSlotSelected,
   onConsultationRequest,
+  onStaffInfoClick,
 }: Props) {
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [combineOpen, setCombineOpen] = useState(false);
-  const wasLoadingRef = useRef(false);
-  const hasFetchedOnce = useRef(false);
   const {
     services,
     selectedServices,
@@ -511,45 +578,13 @@ export function OpeningsStep({
     selectSlot,
   } = useOpenings();
 
-  // Track when the openings fetch completes so we can distinguish
-  // "hasn't fetched yet" (show spinner) from "fetched, got zero" (show message).
-  // hasFetchedOnce only becomes true after openingsLoading transitions true→false.
-  if (openingsLoading) {
-    wasLoadingRef.current = true;
-  } else if (wasLoadingRef.current) {
-    hasFetchedOnce.current = true;
-    wasLoadingRef.current = false;
-  }
-
-  // Show spinner until services load AND while openings are being fetched
-  // (or haven't been fetched yet after service selection).
-  const loading =
-    openingsLoading || services.length === 0 || !hasFetchedOnce.current;
   const { selectedMemberId, schedules } = useBookingFlow();
 
   const isMemberMode = !!selectedMemberId;
 
-  // Auto-select today's date if none set
-  useEffect(() => {
-    if (!selectedDate) {
-      selectDate(todayStr());
-    }
-  }, [selectedDate, selectDate]);
-
-  // Auto-select first service if none selected
-  useEffect(() => {
-    if (selectedServices.length === 0 && services.length > 0) {
-      const svc = services[0];
-      selectService({
-        id: svc.id,
-        title: svc.title,
-        price: svc.price,
-        duration: svc.duration,
-        options: svc.options,
-        hasConsultation: svc.hasConsultation,
-      });
-    }
-  }, [services, selectedServices, selectService]);
+  // Auto-select today's date and first service are handled in
+  // BookingWidgetInner so the openings fetch can kick off before this step
+  // mounts (otherwise the unified loading gate would deadlock).
 
   const currentDate = selectedDate || todayStr();
   const isPastDisabled = currentDate <= todayStr();
@@ -690,6 +725,7 @@ export function OpeningsStep({
               gap: 8,
               fontWeight: 600,
               fontSize: 15,
+              lineHeight: 1,
               border: "none",
               background: "none",
               cursor: "pointer",
@@ -698,8 +734,16 @@ export function OpeningsStep({
               padding: "4px 8px",
             }}
           >
-            {formatDateLabel(currentDate)}
-            <svg width="10" height="6" viewBox="0 0 10 6" fill="none">
+            <span style={{ display: "inline-flex", alignItems: "center" }}>
+              {formatDateLabel(currentDate)}
+            </span>
+            <svg
+              width="10"
+              height="6"
+              viewBox="0 0 10 6"
+              fill="none"
+              style={{ display: "block", flexShrink: 0 }}
+            >
               <path
                 d="M1 1l4 4 4-4"
                 stroke="currentColor"
@@ -783,8 +827,9 @@ export function OpeningsStep({
             >
               {services.map((s) => (
                 <option key={s.id} value={s.id}>
-                  {s.title} – {formatPrice(s.price)} ·{" "}
-                  {formatDuration(s.duration)}
+                  {isMemberMode
+                    ? `${s.title} – ${formatPrice(s.price)} · ${formatDuration(s.duration)}`
+                    : s.title}
                 </option>
               ))}
               {services.length > 1 && (
@@ -856,11 +901,18 @@ export function OpeningsStep({
                     }}
                   >
                     <span>{svc.title}</span>
-                    <span style={{ color: "var(--openings-muted, #666)" }}>
-                      {svc.option
-                        ? `${svc.option.title} · ${formatPrice(svc.option.price)}`
-                        : formatPrice(svc.price)}
-                    </span>
+                    {isMemberMode && (
+                      <span style={{ color: "var(--openings-muted, #666)" }}>
+                        {svc.option
+                          ? `${svc.option.title} · ${formatPrice(svc.option.price)}`
+                          : formatPrice(svc.price)}
+                      </span>
+                    )}
+                    {!isMemberMode && svc.option && (
+                      <span style={{ color: "var(--openings-muted, #666)" }}>
+                        {svc.option.title}
+                      </span>
+                    )}
                   </div>
                 ))}
               </div>
@@ -872,9 +924,14 @@ export function OpeningsStep({
                   color: "var(--openings-muted, #666)",
                 }}
               >
-                {selectedServices.length} services ·{" "}
-                {formatPrice(combinedPrice)} ·{" "}
-                {formatDuration(combinedDuration)}
+                {selectedServices.length} services
+                {isMemberMode && (
+                  <>
+                    {" "}
+                    · {formatPrice(combinedPrice)} ·{" "}
+                    {formatDuration(combinedDuration)}
+                  </>
+                )}
               </div>
             </div>
           )}
@@ -887,6 +944,7 @@ export function OpeningsStep({
               onSubmit={handleCombineSubmit}
               onClose={() => setCombineOpen(false)}
               labels={labels}
+              showPricing={isMemberMode}
             />
           )}
         </div>
@@ -918,29 +976,32 @@ export function OpeningsStep({
             marginBottom: 10,
             textTransform: "uppercase",
             letterSpacing: 0.5,
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
           }}
         >
-          {isConsultation ? labels.consultationRequired : labels.selectTime}
-        </div>
-
-        {loading && !isConsultation && (
-          <div style={{ textAlign: "center", padding: "24px 0" }}>
-            <div
+          <span>
+            {isConsultation ? labels.consultationRequired : labels.selectTime}
+          </span>
+          {!isConsultation && openingsLoading && (
+            <span
+              aria-hidden
               style={{
-                width: 24,
-                height: 24,
-                border: "2px solid var(--openings-border, #e5e5e5)",
+                width: 10,
+                height: 10,
+                border: "1.5px solid var(--openings-border, #e5e5e5)",
                 borderTopColor: "var(--openings-accent, #000)",
                 borderRadius: "50%",
                 animation: "openings-spin 0.6s linear infinite",
-                margin: "0 auto",
+                display: "inline-block",
               }}
             />
-          </div>
-        )}
+          )}
+        </div>
 
-        {!loading &&
-          !isConsultation &&
+        {!isConsultation &&
+          !openingsLoading &&
           membersWithSlots.length === 0 &&
           membersWithoutSlots.length === 0 && (
             <div
@@ -1019,7 +1080,15 @@ export function OpeningsStep({
                       </div>
                     )}
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: 600, fontSize: 15 }}>
+                      <div
+                        style={{
+                          fontWeight: 600,
+                          fontSize: 15,
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
                         {member.name}
                       </div>
                       {svc && (
@@ -1033,6 +1102,13 @@ export function OpeningsStep({
                         </div>
                       )}
                     </div>
+                    {onStaffInfoClick && (
+                      <StaffInfoButton
+                        member={member}
+                        label={labels.staffInfo}
+                        onClick={onStaffInfoClick}
+                      />
+                    )}
                   </div>
                   <div style={{ padding: 12 }}>
                     <button
@@ -1185,7 +1261,15 @@ export function OpeningsStep({
                           </div>
                         )}
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontWeight: 600, fontSize: 15 }}>
+                          <div
+                            style={{
+                              fontWeight: 600,
+                              fontSize: 15,
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
+                            }}
+                          >
                             {member.name}
                           </div>
                           {svc && (
@@ -1200,6 +1284,13 @@ export function OpeningsStep({
                             </div>
                           )}
                         </div>
+                        {onStaffInfoClick && (
+                          <StaffInfoButton
+                            member={member}
+                            label={labels.staffInfo}
+                            onClick={onStaffInfoClick}
+                          />
+                        )}
                       </>
                     )}
                   </div>
@@ -1347,7 +1438,7 @@ export function OpeningsStep({
                         </div>
                       );
                     })()}
-                    <div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontWeight: 600, fontSize: 15 }}>
                         {isMemberMode
                           ? (member.schedule?.title ?? "Schedule")
@@ -1363,6 +1454,13 @@ export function OpeningsStep({
                         All booked
                       </div>
                     </div>
+                    {!isMemberMode && onStaffInfoClick && (
+                      <StaffInfoButton
+                        member={member}
+                        label={labels.staffInfo}
+                        onClick={onStaffInfoClick}
+                      />
+                    )}
                   </div>
                 </div>
               );

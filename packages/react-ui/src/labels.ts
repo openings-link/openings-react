@@ -33,6 +33,7 @@ export interface BookingLabels {
   serviceRequestPhotosHint: string;
   serviceRequestSent: string;
   serviceRequestSentMessage: string;
+  staffInfo: string;
 }
 
 export const defaultLabels: BookingLabels = {
@@ -71,4 +72,5 @@ export const defaultLabels: BookingLabels = {
   serviceRequestSent: "Request Sent!",
   serviceRequestSentMessage:
     "We've received your request and will get back to you soon.",
+  staffInfo: "Staff info",
 };

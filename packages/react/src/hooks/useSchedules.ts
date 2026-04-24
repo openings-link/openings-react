@@ -48,6 +48,10 @@ export function useSchedules(): UseSchedulesReturn {
       callbacks.onScheduleSelect?.(schedule);
     }
 
+    // Optimistically set selectedScheduleId so the BookingWidget's
+    // unified loading gate engages immediately (willLandOnOpenings flips
+    // true), preventing a ScheduleStep flash during the detail fetch.
+    dispatch({ type: "SET_SELECTED_SCHEDULE", scheduleId });
     dispatch({ type: "SET_LOADING", loading: true });
     apiClient
       .fetchScheduleDetail(scheduleId)

@@ -8,7 +8,7 @@ import {
   type MemberOpenings,
   type SelectedService,
 } from "@openings-link/react";
-import type { ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { themeToCssVars, type BookingTheme } from "./theme";
 import { defaultLabels, type BookingLabels } from "./labels";
 import { ScheduleStep } from "./components/ScheduleStep";
@@ -41,6 +41,11 @@ interface BookingWidgetProps {
     member: MemberOpenings,
     services: SelectedService[],
   ) => void;
+  /** Called when a user clicks the info icon on a staff card in the schedule
+   * view. When provided, an info button is rendered next to each staff name
+   * so the host app can open its own mini-profile UI (bio, photos, etc.).
+   * When omitted, no info button is shown. */
+  onStaffInfoClick?: (member: MemberOpenings) => void;
   /** Class name for the root container. */
   className?: string;
 }
@@ -55,6 +60,7 @@ export function BookingWidget({
   apiClient,
   on,
   onConsultationRequest,
+  onStaffInfoClick,
   className,
 }: BookingWidgetProps) {
   const cssVars = themeToCssVars(theme);
@@ -92,6 +98,7 @@ export function BookingWidget({
         <BookingWidgetInner
           labels={labels}
           onConsultationRequest={onConsultationRequest}
+          onStaffInfoClick={onStaffInfoClick}
         />
       </div>
     </OpeningsProvider>
@@ -101,15 +108,60 @@ export function BookingWidget({
 function BookingWidgetInner({
   labels,
   onConsultationRequest,
+  onStaffInfoClick,
 }: {
   labels: BookingLabels;
   onConsultationRequest?: (
     member: MemberOpenings,
     services: SelectedService[],
   ) => void;
+  onStaffInfoClick?: (member: MemberOpenings) => void;
 }) {
   const flow = useBookingFlow();
   const serviceRequest = useServiceRequest();
+
+  // Auto-select today's date once the openings step is (or will be) active.
+  // Lifted from OpeningsStep so the openings fetch can kick off before the
+  // step mounts — otherwise the loading gate would deadlock (spinner waits
+  // for openings fetch, but fetch needs a date which is set on mount).
+  useEffect(() => {
+    if (!flow.selectedDate) {
+      const today = new Date();
+      const pad = (n: number) => (n < 10 ? `0${n}` : String(n));
+      flow.selectDate(
+        `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`,
+      );
+    }
+  }, [flow.selectedDate, flow.selectDate, flow]);
+
+  // Auto-select first service once services are loaded.
+  useEffect(() => {
+    if (flow.selectedServices.length === 0 && flow.services.length > 0) {
+      const svc = flow.services[0];
+      flow.selectService({
+        id: svc.id,
+        title: svc.title,
+        price: svc.price,
+        duration: svc.duration,
+        options: svc.options,
+        hasConsultation: svc.hasConsultation,
+      });
+    }
+  }, [flow.services, flow.selectedServices, flow.selectService, flow]);
+
+  // Track whether the first openings fetch has completed so we can keep a
+  // single unified spinner up from mount until the step is fully ready.
+  // openingsLoading transitions true→false exactly once on first load; after
+  // that, date changes still trigger openingsLoading but the full UI stays
+  // mounted so there's no layout jump.
+  const wasOpeningsLoadingRef = useRef(false);
+  const openingsFetchedOnceRef = useRef(false);
+  if (flow.openingsLoading) {
+    wasOpeningsLoadingRef.current = true;
+  } else if (wasOpeningsLoadingRef.current) {
+    openingsFetchedOnceRef.current = true;
+    wasOpeningsLoadingRef.current = false;
+  }
 
   // When no external handler is provided, use the built-in service request form
   const consultationHandler =
@@ -118,9 +170,24 @@ function BookingWidgetInner({
       serviceRequest.startRequest(member);
     }) as (member: MemberOpenings, services: SelectedService[]) => void);
 
-  // Show a spinner until business is loaded and entry point is resolved.
-  // This prevents child steps from flashing "no data" while fetches are in flight.
-  if (flow.businessLoading || !flow.entryResolved) {
+  // Unified loading gate: keep a single spinner up from mount until the
+  // openings step is fully ready. Covers the window where entry is resolved
+  // but schedule-detail is still fetching (so step is still "schedule") —
+  // without this we'd flash ScheduleStep, then OpeningsStep with empty
+  // services, then finally the populated UI.
+  const hasEnteredOpeningsRef = useRef(false);
+  if (flow.step === "openings") {
+    hasEnteredOpeningsRef.current = true;
+  }
+  const willLandOnOpenings =
+    !!flow.selectedScheduleId || !!flow.selectedMemberId;
+
+  const openingsStepNotReady =
+    (flow.step === "openings" ||
+      (willLandOnOpenings && !hasEnteredOpeningsRef.current)) &&
+    (flow.services.length === 0 || !openingsFetchedOnceRef.current);
+
+  if (flow.businessLoading || !flow.entryResolved || openingsStepNotReady) {
     return (
       <div style={{ textAlign: "center", padding: "48px 0" }}>
         <div
@@ -145,6 +212,7 @@ function BookingWidgetInner({
         labels={labels}
         onSlotSelected={flow.goToReview}
         onConsultationRequest={consultationHandler}
+        onStaffInfoClick={onStaffInfoClick}
       />
     ),
     review: <ReviewStep labels={labels} />,

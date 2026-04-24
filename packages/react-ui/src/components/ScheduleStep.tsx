@@ -7,16 +7,13 @@ interface Props {
 
 export function ScheduleStep({ labels }: Props) {
   const { business } = useBusiness();
-  const { schedules, selectSchedule, loading } = useSchedules();
+  const { schedules, selectSchedule } = useSchedules();
 
-  if (loading) {
-    return (
-      <div style={{ textAlign: "center", padding: "32px 0" }}>
-        <Spinner />
-      </div>
-    );
-  }
-
+  // Note: no loading spinner here. The BookingWidget's outer unified gate
+  // covers the initial schedules fetch (entryResolved stays false until
+  // schedules load). After the user clicks a schedule, the list stays
+  // visible until the step transitions to "openings", at which point the
+  // outer gate re-engages — avoiding a spinner-to-spinner flicker.
   if (schedules.length === 0) {
     return (
       <div
@@ -135,21 +132,5 @@ export function ScheduleStep({ labels }: Props) {
         ))}
       </div>
     </div>
-  );
-}
-
-function Spinner() {
-  return (
-    <div
-      style={{
-        width: 24,
-        height: 24,
-        border: "2px solid var(--openings-border, #e5e5e5)",
-        borderTopColor: "var(--openings-accent, #000)",
-        borderRadius: "50%",
-        animation: "openings-spin 0.6s linear infinite",
-        margin: "0 auto",
-      }}
-    />
   );
 }

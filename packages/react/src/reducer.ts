@@ -107,6 +107,7 @@ export type BookingAction =
   | { type: "SET_ENTRY"; scheduleId: string | null; memberId: string | null }
   | { type: "SET_ENTRY_RESOLVED" }
   | { type: "SET_SELECTED_MEMBER"; memberId: string | null }
+  | { type: "SET_SELECTED_SCHEDULE"; scheduleId: string | null }
   | {
       type: "SET_SCHEDULE_DETAIL";
       scheduleId: string;
@@ -170,6 +171,8 @@ export function bookingReducer(
       return { ...state, entryResolved: true };
     case "SET_SELECTED_MEMBER":
       return { ...state, selectedMemberId: action.memberId };
+    case "SET_SELECTED_SCHEDULE":
+      return { ...state, selectedScheduleId: action.scheduleId };
     case "SET_SCHEDULE_DETAIL":
       return {
         ...state,
