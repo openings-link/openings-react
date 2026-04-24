@@ -1,0 +1,65 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "react@*"
+      - "react-ui@*"
+  workflow_dispatch:
+    inputs:
+      package:
+        description: "Package to publish"
+        required: true
+        type: choice
+        options:
+          - "@openings-link/react"
+          - "@openings-link/react-ui"
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # required for npm trusted publishing (OIDC)
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm -r build
+
+      - name: Resolve package from tag
+        if: github.event_name == 'push'
+        id: tag
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          case "$TAG" in
+            react@*)    echo "dir=packages/react"    >> "$GITHUB_OUTPUT" ;;
+            react-ui@*) echo "dir=packages/react-ui" >> "$GITHUB_OUTPUT" ;;
+            *) echo "Unknown tag: $TAG" && exit 1 ;;
+          esac
+
+      - name: Resolve package from dispatch
+        if: github.event_name == 'workflow_dispatch'
+        id: dispatch
+        run: |
+          case "${{ inputs.package }}" in
+            "@openings-link/react")    echo "dir=packages/react"    >> "$GITHUB_OUTPUT" ;;
+            "@openings-link/react-ui") echo "dir=packages/react-ui" >> "$GITHUB_OUTPUT" ;;
+          esac
+
+      - name: Publish
+        working-directory: ${{ steps.tag.outputs.dir || steps.dispatch.outputs.dir }}
+        run: npm publish --access public --provenance
