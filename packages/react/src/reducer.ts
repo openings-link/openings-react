@@ -257,10 +257,16 @@ export function bookingReducer(
         error: null,
       };
     case "RESET":
+      // Preserve business + schedules (no need to refetch) AND the original
+      // entry point so a post-confirm "Book another" lands back on the same
+      // entry screen (e.g. staff-booking returns to that member, not the
+      // schedule list). Auto-selection re-runs because entryResolved resets.
       return {
         ...initialState,
         business: state.business,
         schedules: state.schedules,
+        entryScheduleId: state.entryScheduleId,
+        entryMemberId: state.entryMemberId,
       };
     default:
       return state;
