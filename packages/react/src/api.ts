@@ -14,6 +14,7 @@ import type {
   MemberOpenings,
   BookingResult,
   ServiceRequestResult,
+  NextAvailabilityItem,
 } from "./types";
 
 /* ─── Internal response types ─── */
@@ -98,6 +99,15 @@ export interface ApiClient {
     date: string,
     services: { serviceId: string; optionId?: string }[],
   ): Promise<MemberOpenings[]>;
+  fetchNextAvailability(input: {
+    businessId: string;
+    scheduleIds: string[];
+    /** Restrict search to per-member child schedules of this team member. */
+    teamMemberId?: string;
+    date: string;
+    serviceDuration: number;
+    days?: number;
+  }): Promise<NextAvailabilityItem[]>;
   fetchAppointmentHistory(
     phoneNumber: string,
     businessId: string,
@@ -187,6 +197,28 @@ export function createApiClient(baseUrl: string): ApiClient {
       return api<MemberOpenings[]>(
         baseUrl,
         `/v1/openings/members?${qs.toString()}`,
+      );
+    },
+
+    fetchNextAvailability({
+      businessId,
+      scheduleIds,
+      teamMemberId,
+      date,
+      serviceDuration,
+      days,
+    }) {
+      const qs = new URLSearchParams({
+        salonId: businessId,
+        scheduleIds: scheduleIds.join(","),
+        date,
+        serviceDuration: String(serviceDuration),
+      });
+      if (teamMemberId) qs.set("teamMemberId", teamMemberId);
+      if (days) qs.set("days", String(days));
+      return api<NextAvailabilityItem[]>(
+        baseUrl,
+        `/v1/openings/next-availability?${qs.toString()}`,
       );
     },
 

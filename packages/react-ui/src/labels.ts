@@ -34,6 +34,10 @@ export interface BookingLabels {
   serviceRequestSent: string;
   serviceRequestSentMessage: string;
   staffInfo: string;
+  findNextAvailability: string;
+  noOpeningsKeepLooking: string;
+  searchingNextAvailability: string;
+  nextAvailabilityNoneFound: string;
 }
 
 export const defaultLabels: BookingLabels = {
@@ -73,4 +77,9 @@ export const defaultLabels: BookingLabels = {
   serviceRequestSentMessage:
     "We've received your request and will get back to you soon.",
   staffInfo: "Staff info",
+  findNextAvailability: "Find Next Availability",
+  noOpeningsKeepLooking:
+    "No openings found for this date. Check availability on other days.",
+  searchingNextAvailability: "Searching for next available days…",
+  nextAvailabilityNoneFound: "No upcoming availability found.",
 };

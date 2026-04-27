@@ -1,6 +1,6 @@
 import { useEffect, useCallback } from "react";
 import { useBookingContext } from "../context";
-import type { MemberOpenings } from "../types";
+import type { MemberOpenings, NextAvailabilityItem } from "../types";
 
 interface UseOpeningsReturn {
   memberOpenings: MemberOpenings[];
@@ -10,6 +10,12 @@ interface UseOpeningsReturn {
   selectedMember: MemberOpenings | null;
   selectDate: (date: string) => void;
   selectSlot: (member: MemberOpenings, time: string) => void;
+  /** Forward-search next available days. Results land in `nextAvailability`. */
+  findNextAvailability: (opts?: { days?: number }) => Promise<void>;
+  nextAvailability: NextAvailabilityItem[];
+  nextAvailabilityLoading: boolean;
+  nextAvailabilityError: string | null;
+  clearNextAvailability: () => void;
 }
 
 export function useOpenings(): UseOpeningsReturn {
@@ -141,6 +147,88 @@ export function useOpenings(): UseOpeningsReturn {
     [dispatch, callbacks],
   );
 
+  const findNextAvailability = useCallback(
+    async (opts?: { days?: number }) => {
+      if (!state.business) return;
+
+      // Determine schedules to search. In member mode we span all schedules
+      // the member belongs to; otherwise the currently-selected schedule.
+      const scheduleIds = state.selectedMemberId
+        ? (state.schedules ?? []).map((s) => s.id)
+        : state.selectedScheduleId
+          ? [state.selectedScheduleId]
+          : [];
+      if (scheduleIds.length === 0) return;
+
+      // In member mode, resolve the team-member id so the API can compute
+      // openings against the member's per-member child schedules instead of
+      // falling back to the business schedule's default hours.
+      const teamMemberId = state.selectedMemberId
+        ? (state.members.find((m) => m.id === state.selectedMemberId)
+            ?.teamMemberId ?? undefined)
+        : undefined;
+
+      const totalDuration = state.selectedServices.reduce(
+        (sum, s) => sum + (s.option?.duration ?? s.duration),
+        0,
+      );
+      if (totalDuration <= 0) return;
+
+      // Start search from the day AFTER the currently-selected date so we
+      // don't return the empty current day.
+      const startDate = (() => {
+        const base = state.selectedDate
+          ? new Date(state.selectedDate + "T00:00:00")
+          : new Date();
+        base.setDate(base.getDate() + 1);
+        const pad = (n: number) => (n < 10 ? `0${n}` : String(n));
+        return `${base.getFullYear()}-${pad(base.getMonth() + 1)}-${pad(base.getDate())}`;
+      })();
+
+      dispatch({ type: "SET_NEXT_AVAILABILITY_LOADING", loading: true });
+      try {
+        const items = await apiClient.fetchNextAvailability({
+          businessId: state.business.id,
+          scheduleIds,
+          teamMemberId,
+          date: startDate,
+          serviceDuration: totalDuration,
+          days: opts?.days,
+        });
+        // In member mode, filter results to the selected member's schedules
+        // (next-availability is schedule-level, not member-level — schedules
+        // already correspond to the member, so this is a no-op safety net).
+        dispatch({ type: "SET_NEXT_AVAILABILITY", items });
+      } catch (err) {
+        dispatch({
+          type: "SET_NEXT_AVAILABILITY",
+          items: [],
+          error:
+            err instanceof Error
+              ? err.message
+              : "Failed to find next availability",
+        });
+      } finally {
+        dispatch({ type: "SET_NEXT_AVAILABILITY_LOADING", loading: false });
+      }
+    },
+    [
+      apiClient,
+      dispatch,
+      state.business,
+      state.members,
+      state.schedules,
+      state.selectedDate,
+      state.selectedMemberId,
+      state.selectedScheduleId,
+      state.selectedServices,
+    ],
+  );
+
+  const clearNextAvailability = useCallback(() => {
+    dispatch({ type: "CLEAR_NEXT_AVAILABILITY" });
+  }, [dispatch]);
+
   return {
     memberOpenings: state.memberOpenings,
     loading: state.openingsLoading,
@@ -149,5 +237,10 @@ export function useOpenings(): UseOpeningsReturn {
     selectedMember: state.selectedMemberOpenings,
     selectDate,
     selectSlot,
+    findNextAvailability,
+    nextAvailability: state.nextAvailability,
+    nextAvailabilityLoading: state.nextAvailabilityLoading,
+    nextAvailabilityError: state.nextAvailabilityError,
+    clearNextAvailability,
   };
 }

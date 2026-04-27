@@ -39,6 +39,11 @@ export function useBookingFlow() {
     selectedMember,
     selectDate,
     selectSlot,
+    findNextAvailability,
+    nextAvailability,
+    nextAvailabilityLoading,
+    nextAvailabilityError,
+    clearNextAvailability,
   } = useOpenings();
   const booking = useBooking();
 
@@ -168,6 +173,13 @@ export function useBookingFlow() {
     selectedMember,
     selectSlot: (member: MemberOpenings, time: string) =>
       selectSlot(member, time),
+
+    // Next availability
+    findNextAvailability,
+    nextAvailability,
+    nextAvailabilityLoading,
+    nextAvailabilityError,
+    clearNextAvailability,
 
     // Booking actions
     ...booking,

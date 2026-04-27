@@ -8,6 +8,7 @@ import type {
   SelectedService,
   BookingResult,
   ServiceRequestResult,
+  NextAvailabilityItem,
 } from "./types";
 
 /* ─── State ─── */
@@ -37,6 +38,11 @@ export interface BookingState {
 
   selectedMemberOpenings: MemberOpenings | null;
   selectedTime: string | null;
+
+  /* Next availability (forward search) */
+  nextAvailability: NextAvailabilityItem[];
+  nextAvailabilityLoading: boolean;
+  nextAvailabilityError: string | null;
 
   /* Verification */
   phoneNumber: string;
@@ -81,6 +87,10 @@ export const initialState: BookingState = {
   selectedMemberOpenings: null,
   selectedTime: null,
 
+  nextAvailability: [],
+  nextAvailabilityLoading: false,
+  nextAvailabilityError: null,
+
   phoneNumber: "",
   email: "",
   verificationCode: "",
@@ -121,6 +131,13 @@ export type BookingAction =
   | { type: "SELECT_DATE"; date: string }
   | { type: "SET_OPENINGS_LOADING"; loading: boolean }
   | { type: "SET_MEMBER_OPENINGS"; memberOpenings: MemberOpenings[] }
+  | { type: "SET_NEXT_AVAILABILITY_LOADING"; loading: boolean }
+  | {
+      type: "SET_NEXT_AVAILABILITY";
+      items: NextAvailabilityItem[];
+      error?: string | null;
+    }
+  | { type: "CLEAR_NEXT_AVAILABILITY" }
   | {
       type: "SELECT_SLOT";
       memberOpenings: MemberOpenings;
@@ -211,16 +228,47 @@ export function bookingReducer(
         memberOpenings: [],
         selectedMemberOpenings: null,
         selectedTime: null,
+        nextAvailability: [],
+        nextAvailabilityError: null,
       };
     case "SET_OPENINGS_LOADING":
       return { ...state, openingsLoading: action.loading };
     case "SET_MEMBER_OPENINGS":
       return { ...state, memberOpenings: action.memberOpenings };
+    case "SET_NEXT_AVAILABILITY_LOADING":
+      return {
+        ...state,
+        nextAvailabilityLoading: action.loading,
+        nextAvailabilityError: action.loading
+          ? null
+          : state.nextAvailabilityError,
+      };
+    case "SET_NEXT_AVAILABILITY":
+      return {
+        ...state,
+        nextAvailability: action.items,
+        nextAvailabilityError: action.error ?? null,
+      };
+    case "CLEAR_NEXT_AVAILABILITY":
+      return {
+        ...state,
+        nextAvailability: [],
+        nextAvailabilityError: null,
+      };
     case "SELECT_SLOT":
       return {
         ...state,
         selectedMemberOpenings: action.memberOpenings,
         selectedTime: action.time,
+        // Overlay member-specific pricing/duration onto the user's selected
+        // services. The Openings API returns each member's services with
+        // their own price + a `referenceId` pointing back at the host
+        // service. Without this overlay the review/confirm screens would
+        // show the host's default price, not the member's actual price.
+        selectedServices: applyMemberPricing(
+          state.selectedServices,
+          action.memberOpenings.services,
+        ),
       };
     case "SET_PHONE":
       return { ...state, phoneNumber: action.phoneNumber };
@@ -271,4 +319,36 @@ export function bookingReducer(
     default:
       return state;
   }
+}
+
+/* ─── Helpers ─── */
+
+/**
+ * Overlay member-specific pricing onto the user's selected services.
+ *
+ * `selectedServices` are typically populated from the host service catalog
+ * (each entry's `id` is the host service id). When the user picks a time
+ * slot for a specific team member, the Openings API returns that member's
+ * own services — each with a member-specific `price`/`duration` and a
+ * `referenceId` that points back at the host service id.
+ *
+ * Match by `referenceId === selected.id` (preferred) or `id === selected.id`
+ * (when selectedServices already hold a member-clone id), and override
+ * `price` and `duration` when the member service provides them.
+ */
+function applyMemberPricing(
+  selectedServices: SelectedService[],
+  memberServices: MemberOpenings["services"] | undefined,
+): SelectedService[] {
+  if (!memberServices || memberServices.length === 0) return selectedServices;
+  return selectedServices.map((sel) => {
+    const match = memberServices.find(
+      (ms) => ms.referenceId === sel.id || ms.id === sel.id,
+    );
+    if (!match) return sel;
+    const next: SelectedService = { ...sel };
+    if (typeof match.price === "number") next.price = match.price;
+    if (typeof match.duration === "number") next.duration = match.duration;
+    return next;
+  });
 }

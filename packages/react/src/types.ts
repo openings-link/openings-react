@@ -88,6 +88,20 @@ export interface MemberOpenings {
   }[];
 }
 
+/* ─── Next availability (search forward across days) ─── */
+
+export interface NextAvailabilityItem {
+  date: string;
+  schedule: {
+    id: string;
+    title: string;
+    address: string | null;
+  };
+  openings: string[];
+  openingLabels?: Record<string, string>;
+  dayStatus?: "vacation" | "workday" | "offday";
+}
+
 /* ─── Selected service (user's choice) ─── */
 
 export interface SelectedService {

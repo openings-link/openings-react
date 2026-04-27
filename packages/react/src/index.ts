@@ -22,6 +22,7 @@ export type {
   ServiceOption,
   SelectedService,
   MemberOpenings,
+  NextAvailabilityItem,
   ScheduleInfo,
   BookingResult,
   ServiceRequestResult,

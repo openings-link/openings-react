@@ -1,5 +1,9 @@
 import { useState, useRef, useCallback } from "react";
-import { useServiceRequest, formatPrice } from "@openings-link/react";
+import {
+  useServiceRequest,
+  useBookingFlow,
+  formatPrice,
+} from "@openings-link/react";
 import type { BookingLabels } from "../labels";
 
 interface Props {
@@ -29,6 +33,8 @@ const MAX_SIZE_MB = 5;
 export function ServiceRequestStep({ labels }: Props) {
   const { member, loading, error, submitRequest, uploadImage } =
     useServiceRequest();
+  const { selectedMemberId } = useBookingFlow();
+  const isMemberMode = !!selectedMemberId;
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -147,64 +153,66 @@ export function ServiceRequestStep({ labels }: Props) {
 
   return (
     <div style={{ animation: "openings-fadeIn 0.25s ease both" }}>
-      {/* Member info header */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 12,
-          padding: "12px 14px",
-          border: "1px solid var(--openings-border, #e5e5e5)",
-          borderRadius: "var(--openings-radius, 8px)",
-          marginBottom: 16,
-        }}
-      >
-        {member.photo ? (
-          <img
-            src={member.photo}
-            alt={member.name ?? ""}
-            style={{
-              width: 40,
-              height: 40,
-              borderRadius: "50%",
-              objectFit: "cover",
-              flexShrink: 0,
-            }}
-          />
-        ) : (
-          <div
-            style={{
-              width: 40,
-              height: 40,
-              borderRadius: "50%",
-              background: "var(--openings-surface, #f5f5f5)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontWeight: 600,
-              fontSize: 16,
-              color: "var(--openings-muted, #666)",
-              flexShrink: 0,
-            }}
-          >
-            {member.name?.charAt(0)?.toUpperCase() ?? "?"}
-          </div>
-        )}
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontWeight: 600, fontSize: 15 }}>{member.name}</div>
-          {svc && (
+      {/* Member info header — hidden in member-entry mode (already on member page) */}
+      {!isMemberMode && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            padding: "12px 14px",
+            border: "1px solid var(--openings-border, #e5e5e5)",
+            borderRadius: "var(--openings-radius, 8px)",
+            marginBottom: 16,
+          }}
+        >
+          {member.photo ? (
+            <img
+              src={member.photo}
+              alt={member.name ?? ""}
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: "50%",
+                objectFit: "cover",
+                flexShrink: 0,
+              }}
+            />
+          ) : (
             <div
               style={{
-                fontSize: 13,
+                width: 40,
+                height: 40,
+                borderRadius: "50%",
+                background: "var(--openings-surface, #f5f5f5)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontWeight: 600,
+                fontSize: 16,
                 color: "var(--openings-muted, #666)",
+                flexShrink: 0,
               }}
             >
-              {svc.title ?? ""}
-              {svc.price != null ? ` · ${formatPrice(svc.price)}` : ""}
+              {member.name?.charAt(0)?.toUpperCase() ?? "?"}
             </div>
           )}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontWeight: 600, fontSize: 15 }}>{member.name}</div>
+            {svc && (
+              <div
+                style={{
+                  fontSize: 13,
+                  color: "var(--openings-muted, #666)",
+                }}
+              >
+                {svc.title ?? ""}
+                {svc.price != null ? ` · ${formatPrice(svc.price)}` : ""}
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Form */}
       <form onSubmit={handleSubmit}>

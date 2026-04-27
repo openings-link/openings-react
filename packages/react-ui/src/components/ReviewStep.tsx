@@ -51,16 +51,6 @@ export function ReviewStep({ labels }: Props) {
     <div>
       <div
         style={{
-          fontSize: 16,
-          fontWeight: 600,
-          marginBottom: 16,
-        }}
-      >
-        {labels.review}
-      </div>
-
-      <div
-        style={{
           border: "1px solid var(--openings-border, #e5e5e5)",
           borderRadius: "var(--openings-radius, 8px)",
           padding: "4px 16px",

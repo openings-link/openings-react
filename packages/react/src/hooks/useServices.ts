@@ -23,11 +23,9 @@ export function useServices(): UseServicesReturn {
   let memberServices: Service[] = [];
   if (state.selectedMemberId) {
     const member = state.members.find((m) => m.id === state.selectedMemberId);
-    if (member) {
+    if (member?.teamMemberId) {
       memberServices = state.services.filter(
-        (s) =>
-          (s.teamMemberId && s.teamMemberId === member.teamMemberId) ||
-          (s.userId && s.userId === member.userId),
+        (s) => s.teamMemberId === member.teamMemberId,
       );
     }
   }
@@ -52,13 +50,14 @@ export function useServices(): UseServicesReturn {
     dispatch({ type: "CLEAR_SERVICES" });
   };
 
-  // Priority: member-specific services > business-level > all
-  const filteredServices =
-    memberServices.length > 0
-      ? memberServices
-      : businessServices.length > 0
-        ? businessServices
-        : state.services;
+  // When a member is selected, show ONLY their services. The Openings API
+  // tags each service with its owning teamMemberId, so this filter is
+  // authoritative — no fallback to host-level offerings.
+  const filteredServices = state.selectedMemberId
+    ? memberServices
+    : businessServices.length > 0
+      ? businessServices
+      : state.services;
 
   return {
     services: filteredServices,

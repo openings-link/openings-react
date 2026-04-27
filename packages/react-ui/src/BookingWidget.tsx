@@ -84,6 +84,8 @@ export function BookingWidget({
         [data-openings-widget] button:active:not(:disabled) { transform: scale(0.97); }
         [data-openings-widget] .openings-slot:hover { border-color: var(--openings-accent, #000) !important; box-shadow: 0 0 0 1px var(--openings-accent, #000); }
         [data-openings-widget] .openings-back:hover { background: var(--openings-border, #e5e5e5) !important; }
+        [data-openings-widget] .openings-slot-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 6px; }
+        @media (max-width: 480px) { [data-openings-widget] .openings-slot-grid { grid-template-columns: repeat(4, 1fr); } }
       `}</style>
       <div
         className={className}
@@ -179,6 +181,19 @@ function BookingWidgetInner({
   if (flow.step === "openings") {
     hasEnteredOpeningsRef.current = true;
   }
+
+  // Reset the persistent "first run" refs whenever the flow re-enters
+  // entry resolution (i.e. after a post-confirm reset). Without this, a
+  // returning user would briefly see ScheduleStep / an empty OpeningsStep
+  // flash before auto-select lands them back on the populated openings UI,
+  // because the refs would carry "we already passed first-run" state from
+  // the previous booking.
+  if (!flow.entryResolved) {
+    hasEnteredOpeningsRef.current = false;
+    openingsFetchedOnceRef.current = false;
+    wasOpeningsLoadingRef.current = false;
+  }
+
   const willLandOnOpenings =
     !!flow.selectedScheduleId || !!flow.selectedMemberId;
 
@@ -268,18 +283,44 @@ function BookingWidgetInner({
               />
             </svg>
           </button>
-          {flow.selectedScheduleId &&
-            (flow.schedules ?? []).length > 1 &&
-            (() => {
+          {(() => {
+            // Step title takes priority over the schedule label so users
+            // see "Booking summary" / "Verify" inline with the back button
+            // (matches the multi-location header pattern from earlier steps).
+            const stepTitle =
+              flow.step === "review"
+                ? labels.review
+                : flow.step === "verify"
+                  ? labels.verifyTitle
+                  : flow.step === "service-request"
+                    ? labels.serviceRequestTitle
+                    : null;
+            if (stepTitle) {
+              return (
+                <span
+                  style={{
+                    fontSize: 16,
+                    fontWeight: 600,
+                    color: "var(--openings-text, #111)",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {stepTitle}
+                </span>
+              );
+            }
+            if (flow.selectedScheduleId && (flow.schedules ?? []).length > 1) {
               const schedule = (flow.schedules ?? []).find(
                 (s) => s.id === flow.selectedScheduleId,
               );
               return schedule ? (
                 <span
                   style={{
-                    fontSize: 14,
-                    fontWeight: 500,
-                    color: "var(--openings-muted, #666)",
+                    fontSize: 16,
+                    fontWeight: 600,
+                    color: "var(--openings-text, #111)",
                     overflow: "hidden",
                     textOverflow: "ellipsis",
                     whiteSpace: "nowrap",
@@ -288,7 +329,9 @@ function BookingWidgetInner({
                   {schedule.title}
                 </span>
               ) : null;
-            })()}
+            }
+            return null;
+          })()}
         </div>
       )}
 

@@ -8,6 +8,8 @@ import {
   formatTime,
   type SelectedService,
   type MemberOpenings,
+  type NextAvailabilityItem,
+  type Schedule,
 } from "@openings-link/react";
 import type { BookingLabels } from "../labels";
 
@@ -128,14 +130,18 @@ function MiniCalendar({
   const [viewMonth, setViewMonth] = useState(valueParts[1] - 1);
   const today = todayStr();
 
+  // Close on outside click. Use `click` (not `mousedown`) so the toggle
+  // button's own onClick has already flipped state to `false` by the time
+  // this fires — otherwise mousedown would close, then onClick would
+  // re-toggle and the calendar would never close on a second toggle-click.
   useEffect(() => {
     function handleClick(e: MouseEvent) {
       if (ref.current && !ref.current.contains(e.target as Node)) {
         onClose();
       }
     }
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
+    document.addEventListener("click", handleClick);
+    return () => document.removeEventListener("click", handleClick);
   }, [onClose]);
 
   const firstDay = new Date(viewYear, viewMonth, 1).getDay();
@@ -424,8 +430,9 @@ function CombineServicesPanel({
         </button>
       </div>
       <div style={{ padding: "8px 14px" }}>
-        {services.map((svc) => {
+        {services.map((svc, idx) => {
           const count = countOf(svc.id);
+          const isLast = idx === services.length - 1;
           return (
             <div
               key={svc.id}
@@ -434,7 +441,9 @@ function CombineServicesPanel({
                 alignItems: "center",
                 justifyContent: "space-between",
                 padding: "8px 0",
-                borderBottom: "1px solid var(--openings-border, #f0f0f0)",
+                borderBottom: isLast
+                  ? "none"
+                  : "1px solid var(--openings-border, #f0f0f0)",
               }}
             >
               <div>
@@ -568,6 +577,7 @@ export function OpeningsStep({
     selectService,
     removeService,
     setServices,
+    members,
   } = useServices();
   const {
     memberOpenings,
@@ -579,8 +589,18 @@ export function OpeningsStep({
   } = useOpenings();
 
   const { selectedMemberId, schedules } = useBookingFlow();
+  const {
+    findNextAvailability,
+    nextAvailability,
+    nextAvailabilityLoading,
+    nextAvailabilityError,
+    clearNextAvailability,
+  } = useBookingFlow();
 
   const isMemberMode = !!selectedMemberId;
+  // Hide per-panel schedule name when member mode resolves to a single
+  // schedule — the title would just be visual noise.
+  const hideScheduleName = isMemberMode && memberOpenings.length === 1;
 
   // Auto-select today's date and first service are handled in
   // BookingWidgetInner so the openings fetch can kick off before this step
@@ -1001,13 +1021,14 @@ export function OpeningsStep({
         </div>
 
         {!isConsultation &&
+          !isMemberMode &&
           !openingsLoading &&
           membersWithSlots.length === 0 &&
           membersWithoutSlots.length === 0 && (
             <div
               style={{
-                textAlign: "center",
-                padding: "24px 0",
+                textAlign: "left",
+                padding: "12px 0",
                 color: "var(--openings-muted, #666)",
                 fontSize: 14,
               }}
@@ -1016,125 +1037,203 @@ export function OpeningsStep({
             </div>
           )}
 
-        {/* ── Consultation mode: show members with "Send a Request" button ── */}
-        {isConsultation && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {memberOpenings.map((member) => {
-              const key = isMemberMode
-                ? (member.schedule?.id ?? member.username)
-                : (member.userId ?? member.teamMemberId ?? member.username);
-              const svc = primaryService
-                ? member.services.find(
-                    (s) =>
-                      s.referenceId === primaryService.id ||
-                      s.id === primaryService.id,
-                  )
-                : undefined;
-              return (
-                <div
-                  key={key}
-                  style={{
-                    border: "1px solid var(--openings-border, #e5e5e5)",
-                    borderRadius: "var(--openings-radius, 8px)",
-                    overflow: "hidden",
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 12,
-                      padding: "12px 14px",
-                      borderBottom: "1px solid var(--openings-border, #e5e5e5)",
-                    }}
-                  >
-                    {member.photo ? (
-                      <img
-                        src={member.photo}
-                        alt={member.name ?? ""}
-                        style={{
-                          width: 40,
-                          height: 40,
-                          borderRadius: "50%",
-                          objectFit: "cover",
-                          flexShrink: 0,
-                        }}
-                      />
-                    ) : (
-                      <div
-                        style={{
-                          width: 40,
-                          height: 40,
-                          borderRadius: "50%",
-                          background: "var(--openings-surface, #f5f5f5)",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          fontWeight: 600,
-                          fontSize: 16,
-                          color: "var(--openings-muted, #666)",
-                          flexShrink: 0,
-                        }}
-                      >
-                        {member.name?.charAt(0)?.toUpperCase() ?? "?"}
-                      </div>
-                    )}
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div
-                        style={{
-                          fontWeight: 600,
-                          fontSize: 15,
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {member.name}
-                      </div>
-                      {svc && (
-                        <div
-                          style={{
-                            fontSize: 13,
-                            color: "var(--openings-muted, #666)",
-                          }}
-                        >
-                          {svc.title ?? ""}
-                        </div>
-                      )}
-                    </div>
-                    {onStaffInfoClick && (
-                      <StaffInfoButton
-                        member={member}
-                        label={labels.staffInfo}
-                        onClick={onStaffInfoClick}
-                      />
-                    )}
-                  </div>
-                  <div style={{ padding: 12 }}>
-                    <button
-                      type="button"
-                      onClick={() => handleConsultationClick(member)}
+        {/* Find Next Availability — only in member booking mode. Schedule
+            booking already shows multiple members per day, so a forward
+            search is less useful and clutters the empty state. */}
+        {isMemberMode &&
+          !isConsultation &&
+          !openingsLoading &&
+          membersWithSlots.length === 0 && (
+            <NextAvailabilityPanel
+              labels={labels}
+              isMemberMode={isMemberMode}
+              schedules={schedules}
+              onSelect={(date, scheduleId) => {
+                clearNextAvailability();
+                if (!isMemberMode && scheduleId) {
+                  // No-op: user is already on this schedule
+                }
+                selectDate(date);
+              }}
+              onSearch={() => findNextAvailability()}
+              loading={nextAvailabilityLoading}
+              error={nextAvailabilityError}
+              items={nextAvailability}
+            />
+          )}
+
+        {/* ── Consultation mode: show members with "Send a Request" button ──
+            Falls back to the schedule-detail `members` list when the openings
+            API returned an empty set (e.g. selected day is a member's offday
+            or vacation). Consultation requests don't require a real slot. */}
+        {isConsultation &&
+          (() => {
+            const consultationMembers: MemberOpenings[] =
+              memberOpenings.length > 0
+                ? memberOpenings
+                : (isMemberMode
+                    ? members.filter((m) => m.id === selectedMemberId)
+                    : members
+                  ).map((m) => ({
+                    userId: m.userId ?? null,
+                    teamMemberId: m.teamMemberId ?? null,
+                    username: m.username ?? m.id,
+                    name: m.name ?? "",
+                    photo: m.photo ?? undefined,
+                    schedule: { id: "", title: "", address: null },
+                    openings: [],
+                    openingLabels: {},
+                    services: primaryService
+                      ? [
+                          {
+                            id: primaryService.id,
+                            title: primaryService.title,
+                            duration: primaryService.duration,
+                            price: primaryService.price,
+                            hasConsultation: true,
+                          },
+                        ]
+                      : [],
+                  }));
+            return (
+              <div
+                style={{ display: "flex", flexDirection: "column", gap: 12 }}
+              >
+                {consultationMembers.map((member) => {
+                  const key = isMemberMode
+                    ? (member.schedule?.id ?? member.username)
+                    : (member.userId ?? member.teamMemberId ?? member.username);
+                  // Prefer the member-specific service entry (with the
+                  // member's own price/duration); fall back to the host
+                  // selection so the row never blanks out while the
+                  // openings refetch is in flight after a service swap.
+                  const svc = primaryService
+                    ? (member.services.find(
+                        (s) =>
+                          s.referenceId === primaryService.id ||
+                          s.id === primaryService.id,
+                      ) ?? {
+                        id: primaryService.id,
+                        title: primaryService.title,
+                        price: primaryService.price,
+                        duration: primaryService.duration,
+                      })
+                    : undefined;
+                  return (
+                    <div
+                      key={key}
                       style={{
-                        width: "100%",
-                        padding: "10px 16px",
-                        border: "none",
-                        borderRadius: 6,
-                        background: "var(--openings-accent, #000)",
-                        color: "#fff",
-                        cursor: "pointer",
-                        fontSize: 14,
-                        fontWeight: 600,
-                        fontFamily: "var(--openings-font, inherit)",
+                        border: isMemberMode
+                          ? "none"
+                          : "1px solid var(--openings-border, #e5e5e5)",
+                        borderRadius: "var(--openings-radius, 8px)",
+                        overflow: "hidden",
                       }}
                     >
-                      {labels.sendRequest}
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
+                      {!isMemberMode && (
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 12,
+                            padding: "12px 14px",
+                            borderBottom:
+                              "1px solid var(--openings-border, #e5e5e5)",
+                          }}
+                        >
+                          {!isMemberMode &&
+                            (member.photo ? (
+                              <img
+                                src={member.photo}
+                                alt={member.name ?? ""}
+                                style={{
+                                  width: 40,
+                                  height: 40,
+                                  borderRadius: "50%",
+                                  objectFit: "cover",
+                                  flexShrink: 0,
+                                }}
+                              />
+                            ) : (
+                              <div
+                                style={{
+                                  width: 40,
+                                  height: 40,
+                                  borderRadius: "50%",
+                                  background:
+                                    "var(--openings-surface, #f5f5f5)",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  fontWeight: 600,
+                                  fontSize: 16,
+                                  color: "var(--openings-muted, #666)",
+                                  flexShrink: 0,
+                                }}
+                              >
+                                {member.name?.charAt(0)?.toUpperCase() ?? "?"}
+                              </div>
+                            ))}
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            {!isMemberMode && (
+                              <div
+                                style={{
+                                  fontWeight: 600,
+                                  fontSize: 15,
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
+                                  whiteSpace: "nowrap",
+                                }}
+                              >
+                                {member.name}
+                              </div>
+                            )}
+                            {svc && (
+                              <div
+                                style={{
+                                  fontSize: 13,
+                                  color: "var(--openings-muted, #666)",
+                                }}
+                              >
+                                {svc.title ?? ""}
+                              </div>
+                            )}
+                          </div>
+                          {!isMemberMode && onStaffInfoClick && (
+                            <StaffInfoButton
+                              member={member}
+                              label={labels.staffInfo}
+                              onClick={onStaffInfoClick}
+                            />
+                          )}
+                        </div>
+                      )}
+                      <div style={{ padding: isMemberMode ? 0 : 12 }}>
+                        <button
+                          type="button"
+                          onClick={() => handleConsultationClick(member)}
+                          style={{
+                            width: "100%",
+                            padding: "10px 16px",
+                            border: "none",
+                            borderRadius: 6,
+                            background: "var(--openings-accent, #000)",
+                            color: "#fff",
+                            cursor: "pointer",
+                            fontSize: 14,
+                            fontWeight: 600,
+                            fontFamily: "var(--openings-font, inherit)",
+                          }}
+                        >
+                          {labels.sendRequest}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
 
         {/* Panels: by location in member mode, by member otherwise */}
         {!isConsultation && (
@@ -1143,12 +1242,20 @@ export function OpeningsStep({
               const key = isMemberMode
                 ? (member.schedule?.id ?? member.username)
                 : (member.userId ?? member.teamMemberId ?? member.username);
+              // Same stale-tolerant lookup as the consultation panel above
+              // — keeps the service info row stable while the background
+              // openings refetch lands new member-specific pricing.
               const svc = primaryService
-                ? member.services.find(
+                ? (member.services.find(
                     (s) =>
                       s.referenceId === primaryService.id ||
                       s.id === primaryService.id,
-                  )
+                  ) ?? {
+                    id: primaryService.id,
+                    title: primaryService.title,
+                    price: primaryService.price,
+                    duration: primaryService.duration,
+                  })
                 : undefined;
 
               return (
@@ -1160,32 +1267,74 @@ export function OpeningsStep({
                     overflow: "hidden",
                   }}
                 >
-                  {/* Panel header: location in member mode, member info otherwise */}
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 12,
-                      padding: "12px 14px",
-                      borderBottom: "1px solid var(--openings-border, #e5e5e5)",
-                    }}
-                  >
-                    {isMemberMode ? (
-                      <>
-                        {(() => {
-                          const scheduleImg = schedules.find(
-                            (s) =>
-                              s.id === member.schedule?.id ||
-                              s.title === member.schedule?.title,
-                          )?.images?.[0];
-                          return scheduleImg ? (
+                  {/* Panel header: location in member mode, member info otherwise.
+                      Hidden entirely in member mode when there's only one
+                      schedule (the title would just be visual noise). */}
+                  {!(isMemberMode && hideScheduleName) && (
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 12,
+                        padding: "12px 14px",
+                        borderBottom:
+                          "1px solid var(--openings-border, #e5e5e5)",
+                      }}
+                    >
+                      {isMemberMode ? (
+                        <>
+                          {(() => {
+                            const scheduleImg = schedules.find(
+                              (s) =>
+                                s.id === member.schedule?.id ||
+                                s.title === member.schedule?.title,
+                            )?.images?.[0];
+                            // Render image only when one exists. No pin
+                            // fallback — keeps the header text-first when the
+                            // schedule has no photo.
+                            return scheduleImg ? (
+                              <img
+                                src={scheduleImg}
+                                alt={member.schedule?.title ?? ""}
+                                style={{
+                                  width: 40,
+                                  height: 40,
+                                  borderRadius: "var(--openings-radius, 8px)",
+                                  objectFit: "cover",
+                                  flexShrink: 0,
+                                }}
+                              />
+                            ) : null;
+                          })()}
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontWeight: 600, fontSize: 15 }}>
+                              {member.schedule?.title ?? "Schedule"}
+                            </div>
+                            {member.schedule?.address && (
+                              <div
+                                style={{
+                                  fontSize: 13,
+                                  color: "var(--openings-muted, #666)",
+                                  whiteSpace: "nowrap",
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
+                                }}
+                              >
+                                {member.schedule.address}
+                              </div>
+                            )}
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          {member.photo ? (
                             <img
-                              src={scheduleImg}
-                              alt={member.schedule?.title ?? ""}
+                              src={member.photo}
+                              alt={member.name ?? ""}
                               style={{
                                 width: 40,
                                 height: 40,
-                                borderRadius: "var(--openings-radius, 8px)",
+                                borderRadius: "50%",
                                 objectFit: "cover",
                                 flexShrink: 0,
                               }}
@@ -1195,115 +1344,63 @@ export function OpeningsStep({
                               style={{
                                 width: 40,
                                 height: 40,
-                                borderRadius: "var(--openings-radius, 8px)",
+                                borderRadius: "50%",
                                 background: "var(--openings-surface, #f5f5f5)",
                                 display: "flex",
                                 alignItems: "center",
                                 justifyContent: "center",
-                                fontSize: 18,
+                                fontWeight: 600,
+                                fontSize: 16,
+                                color: "var(--openings-muted, #666)",
                                 flexShrink: 0,
                               }}
                             >
-                              📍
+                              {member.name?.charAt(0)?.toUpperCase() ?? "?"}
                             </div>
-                          );
-                        })()}
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontWeight: 600, fontSize: 15 }}>
-                            {member.schedule?.title ?? "Schedule"}
-                          </div>
-                          {member.schedule?.address && (
+                          )}
+                          <div style={{ flex: 1, minWidth: 0 }}>
                             <div
                               style={{
-                                fontSize: 13,
-                                color: "var(--openings-muted, #666)",
-                                whiteSpace: "nowrap",
+                                fontWeight: 600,
+                                fontSize: 15,
                                 overflow: "hidden",
                                 textOverflow: "ellipsis",
+                                whiteSpace: "nowrap",
                               }}
                             >
-                              {member.schedule.address}
+                              {member.name}
                             </div>
-                          )}
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        {member.photo ? (
-                          <img
-                            src={member.photo}
-                            alt={member.name ?? ""}
-                            style={{
-                              width: 40,
-                              height: 40,
-                              borderRadius: "50%",
-                              objectFit: "cover",
-                              flexShrink: 0,
-                            }}
-                          />
-                        ) : (
-                          <div
-                            style={{
-                              width: 40,
-                              height: 40,
-                              borderRadius: "50%",
-                              background: "var(--openings-surface, #f5f5f5)",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              fontWeight: 600,
-                              fontSize: 16,
-                              color: "var(--openings-muted, #666)",
-                              flexShrink: 0,
-                            }}
-                          >
-                            {member.name?.charAt(0)?.toUpperCase() ?? "?"}
+                            {svc && (
+                              <div
+                                style={{
+                                  fontSize: 13,
+                                  color: "var(--openings-muted, #666)",
+                                }}
+                              >
+                                {svc.title ?? ""} ·{" "}
+                                {formatPrice(svc.price ?? 0)} ·{" "}
+                                {formatDuration(svc.duration ?? 0)}
+                              </div>
+                            )}
                           </div>
-                        )}
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div
-                            style={{
-                              fontWeight: 600,
-                              fontSize: 15,
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                              whiteSpace: "nowrap",
-                            }}
-                          >
-                            {member.name}
-                          </div>
-                          {svc && (
-                            <div
-                              style={{
-                                fontSize: 13,
-                                color: "var(--openings-muted, #666)",
-                              }}
-                            >
-                              {svc.title ?? ""} · {formatPrice(svc.price ?? 0)}{" "}
-                              · {formatDuration(svc.duration ?? 0)}
-                            </div>
+                          {onStaffInfoClick && (
+                            <StaffInfoButton
+                              member={member}
+                              label={labels.staffInfo}
+                              onClick={onStaffInfoClick}
+                            />
                           )}
-                        </div>
-                        {onStaffInfoClick && (
-                          <StaffInfoButton
-                            member={member}
-                            label={labels.staffInfo}
-                            onClick={onStaffInfoClick}
-                          />
-                        )}
-                      </>
-                    )}
-                  </div>
+                        </>
+                      )}
+                    </div>
+                  )}
 
-                  {/* Time slots grid */}
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "repeat(4, 1fr)",
-                      gap: 6,
-                      padding: 12,
-                    }}
-                  >
+                  {/* Time slots grid — auto-fill so labels never wrap on
+                      narrow modals. Min cell width keeps "10:00 am" on a
+                      single line; on wider widths we get more columns.
+                      On mobile (≤480px) we force 4 columns so the layout
+                      stays predictable. */}
+                  <div className="openings-slot-grid" style={{ padding: 12 }}>
                     {member.openings.map((time, i) => (
                       <button
                         key={time}
@@ -1335,6 +1432,7 @@ export function OpeningsStep({
                           fontSize: 13,
                           fontFamily: "var(--openings-font, inherit)",
                           fontWeight: 500,
+                          whiteSpace: "nowrap",
                           transition: "all 0.15s ease",
                           animation: `openings-scaleIn 0.2s ease ${i * 0.02}s both`,
                         }}
@@ -1376,6 +1474,8 @@ export function OpeningsStep({
                             s.id === member.schedule?.id ||
                             s.title === member.schedule?.title,
                         )?.images?.[0];
+                        // No pin fallback — keep header text-first when
+                        // the schedule has no photo.
                         return scheduleImg ? (
                           <img
                             src={scheduleImg}
@@ -1388,23 +1488,7 @@ export function OpeningsStep({
                               flexShrink: 0,
                             }}
                           />
-                        ) : (
-                          <div
-                            style={{
-                              width: 40,
-                              height: 40,
-                              borderRadius: "var(--openings-radius, 8px)",
-                              background: "var(--openings-surface, #f5f5f5)",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              fontSize: 18,
-                              flexShrink: 0,
-                            }}
-                          >
-                            📍
-                          </div>
-                        );
+                        ) : null;
                       }
                       return member.photo ? (
                         <img
@@ -1468,6 +1552,229 @@ export function OpeningsStep({
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+/* ── Find Next Availability ── */
+
+function NextAvailabilityPanel({
+  labels,
+  isMemberMode,
+  schedules,
+  onSelect,
+  onSearch,
+  loading,
+  error,
+  items,
+}: {
+  labels: BookingLabels;
+  isMemberMode: boolean;
+  schedules: Schedule[];
+  onSelect: (date: string, scheduleId?: string) => void;
+  onSearch: () => void;
+  loading: boolean;
+  error: string | null;
+  items: NextAvailabilityItem[];
+}) {
+  const hasSearched = items.length > 0 || error !== null || loading;
+
+  // Initial state: prompt with a single button. Mirrors Eddie's pattern.
+  if (!hasSearched) {
+    return (
+      <div
+        style={{
+          marginTop: 12,
+          padding: 16,
+          border: "1px solid var(--openings-border, #e5e5e5)",
+          borderRadius: "var(--openings-radius, 8px)",
+        }}
+      >
+        <div
+          style={{
+            fontSize: 14,
+            color: "var(--openings-muted, #666)",
+            marginBottom: 12,
+          }}
+        >
+          {labels.noOpeningsKeepLooking}
+        </div>
+        <button
+          type="button"
+          onClick={onSearch}
+          style={{
+            padding: "10px 16px",
+            border: "none",
+            borderRadius: 6,
+            background: "var(--openings-accent, #000)",
+            color: "#fff",
+            cursor: "pointer",
+            fontSize: 14,
+            fontWeight: 600,
+            fontFamily: "var(--openings-font, inherit)",
+          }}
+        >
+          {labels.findNextAvailability}
+        </button>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div
+        style={{
+          marginTop: 12,
+          padding: 16,
+          textAlign: "left",
+          color: "var(--openings-muted, #666)",
+          fontSize: 14,
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+        }}
+      >
+        <span
+          aria-hidden
+          style={{
+            width: 14,
+            height: 14,
+            border: "2px solid var(--openings-border, #e5e5e5)",
+            borderTopColor: "var(--openings-accent, #000)",
+            borderRadius: "50%",
+            animation: "openings-spin 0.6s linear infinite",
+            display: "inline-block",
+          }}
+        />
+        <span>{labels.searchingNextAvailability}</span>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div
+        role="alert"
+        style={{
+          marginTop: 12,
+          padding: "10px 14px",
+          background: "#fef2f2",
+          color: "#dc2626",
+          borderRadius: "var(--openings-radius, 8px)",
+          fontSize: 14,
+        }}
+      >
+        {error}
+      </div>
+    );
+  }
+
+  if (items.length === 0) {
+    return (
+      <div
+        style={{
+          marginTop: 12,
+          padding: "12px 0",
+          color: "var(--openings-muted, #666)",
+          fontSize: 14,
+        }}
+      >
+        {labels.nextAvailabilityNoneFound}
+      </div>
+    );
+  }
+
+  // Group results by date — schedule-scoped results may have multiple
+  // entries per date when several schedules have openings.
+  const grouped: Record<string, NextAvailabilityItem[]> = {};
+  for (const item of items) {
+    (grouped[item.date] ??= []).push(item);
+  }
+
+  const formatDateHeading = (dateStr: string): string => {
+    const d = new Date(dateStr + "T00:00:00");
+    return d.toLocaleDateString("en-US", {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+    });
+  };
+
+  return (
+    <div
+      style={{
+        marginTop: 12,
+        display: "flex",
+        flexDirection: "column",
+        gap: 12,
+      }}
+    >
+      {Object.entries(grouped).map(([date, dateItems]) => (
+        <div
+          key={date}
+          style={{
+            border: "1px solid var(--openings-border, #e5e5e5)",
+            borderRadius: "var(--openings-radius, 8px)",
+            overflow: "hidden",
+          }}
+        >
+          <div
+            style={{
+              padding: "10px 14px",
+              borderBottom: "1px solid var(--openings-border, #e5e5e5)",
+              fontSize: 14,
+              fontWeight: 600,
+            }}
+          >
+            {formatDateHeading(date)}
+          </div>
+          {dateItems.map((item) => {
+            // Find the schedule's address/title — fall back to the API's
+            // payload, then to schedules list.
+            const sched =
+              schedules.find((s) => s.id === item.schedule.id) ?? null;
+            return (
+              <div key={`${date}-${item.schedule.id}`} style={{ padding: 12 }}>
+                {isMemberMode && (
+                  <div
+                    style={{
+                      fontSize: 13,
+                      color: "var(--openings-muted, #666)",
+                      marginBottom: 8,
+                    }}
+                  >
+                    {item.schedule.title || sched?.title}
+                  </div>
+                )}
+                <div className="openings-slot-grid">
+                  {item.openings.map((time) => (
+                    <button
+                      key={time}
+                      type="button"
+                      className="openings-slot"
+                      onClick={() => onSelect(date, item.schedule.id)}
+                      style={{
+                        padding: "8px 4px",
+                        border: "1px solid var(--openings-border, #e5e5e5)",
+                        borderRadius: 6,
+                        background: "var(--openings-bg, #fff)",
+                        color: "var(--openings-text, #111)",
+                        cursor: "pointer",
+                        fontSize: 13,
+                        fontFamily: "var(--openings-font, inherit)",
+                        fontWeight: 500,
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {formatTime(time)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ))}
     </div>
   );
 }

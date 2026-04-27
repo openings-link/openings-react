@@ -119,16 +119,6 @@ export function VerifyStep({ labels }: Props) {
 
   return (
     <div>
-      <div
-        style={{
-          fontSize: 16,
-          fontWeight: 600,
-          marginBottom: 20,
-        }}
-      >
-        {labels.verifyTitle}
-      </div>
-
       {/* Phase 1: Enter phone/email only */}
       {verifyPhase === "phone" && (
         <div>
