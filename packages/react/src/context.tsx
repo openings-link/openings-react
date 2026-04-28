@@ -84,7 +84,20 @@ export function OpeningsProvider({
   on = {},
   children,
 }: OpeningsProviderProps) {
-  const [state, dispatch] = useReducer(bookingReducer, initialState);
+  // Lazy initializer hydrates entry into state on the FIRST render so
+  // member-mode (and pre-selected schedule mode) is known immediately.
+  // Without this, entry would land via a useEffect-after-mount, opening a
+  // window where the unified loading gate could briefly drop and flash the
+  // schedule list before the member panel appears.
+  const [state, dispatch] = useReducer(
+    bookingReducer,
+    initialState,
+    (init) => ({
+      ...init,
+      entryScheduleId: entry?.scheduleId ?? null,
+      entryMemberId: entry?.memberId ?? null,
+    }),
+  );
 
   const config = useMemo(
     () => ({
@@ -98,15 +111,21 @@ export function OpeningsProvider({
     [business, apiBase, locale, currency, timezone, entry],
   );
 
-  // Set entry props into state on mount
+  // Keep entry in sync if the prop changes after mount (e.g. host swaps the
+  // pre-selected member). On the initial mount this is a no-op because the
+  // lazy initializer above already seeded state with the same values.
   useEffect(() => {
-    if (entry?.scheduleId || entry?.memberId) {
+    if (
+      (entry?.scheduleId ?? null) !== state.entryScheduleId ||
+      (entry?.memberId ?? null) !== state.entryMemberId
+    ) {
       dispatch({
         type: "SET_ENTRY",
-        scheduleId: entry.scheduleId ?? null,
-        memberId: entry.memberId ?? null,
+        scheduleId: entry?.scheduleId ?? null,
+        memberId: entry?.memberId ?? null,
       });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [entry?.scheduleId, entry?.memberId]);
 
   const apiClient = useMemo(
