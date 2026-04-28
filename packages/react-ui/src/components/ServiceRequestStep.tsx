@@ -28,7 +28,80 @@ const ACCEPTED_TYPES = [
   "image/heif",
 ];
 const MAX_IMAGES = 10;
-const MAX_SIZE_MB = 5;
+// Hard cap on the original file the user selects. We still try to compress
+// anything under this limit down to a payload that fits common serverless
+// body limits (~4 MB after base64 encoding).
+const MAX_INPUT_SIZE_MB = 25;
+// Target compressed output size before base64 encoding. ~2.5 MB binary becomes
+// ~3.4 MB base64, comfortably under Vercel's 4.5 MB serverless limit.
+const TARGET_OUTPUT_BYTES = 2.5 * 1024 * 1024;
+// Largest edge after resizing. Plenty of detail for reference photos.
+const MAX_DIMENSION = 2048;
+// MIME types we can re-encode through a canvas. Animated GIFs and HEIC/HEIF
+// pass through unchanged (canvas would lose animation / can't decode).
+const COMPRESSIBLE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+
+/**
+ * Downscale + recompress an image in the browser so phone photos (often 5-10 MB)
+ * fit serverless request body limits. Falls back to the original file on any
+ * failure so we never block the user from uploading.
+ */
+async function compressImage(file: File): Promise<File> {
+  if (!COMPRESSIBLE_TYPES.has(file.type)) return file;
+  if (typeof document === "undefined") return file;
+
+  try {
+    const dataUrl = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = () => reject(new Error("read failed"));
+      reader.readAsDataURL(file);
+    });
+
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const el = new Image();
+      el.onload = () => resolve(el);
+      el.onerror = () => reject(new Error("decode failed"));
+      el.src = dataUrl;
+    });
+
+    const scale = Math.min(
+      1,
+      MAX_DIMENSION / Math.max(img.width, img.height),
+    );
+    const w = Math.round(img.width * scale);
+    const h = Math.round(img.height * scale);
+
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return file;
+    ctx.drawImage(img, 0, 0, w, h);
+
+    // Step quality down until we hit the target size. JPEG output is far
+    // smaller than PNG for photo content.
+    const qualities = [0.85, 0.75, 0.65, 0.55];
+    let best: Blob | null = null;
+    for (const q of qualities) {
+      const blob = await new Promise<Blob | null>((resolve) =>
+        canvas.toBlob(resolve, "image/jpeg", q),
+      );
+      if (!blob) continue;
+      best = blob;
+      if (blob.size <= TARGET_OUTPUT_BYTES) break;
+    }
+    if (!best || best.size >= file.size) return file;
+
+    const baseName = file.name.replace(/\.[^.]+$/, "");
+    return new File([best], `${baseName}.jpg`, {
+      type: "image/jpeg",
+      lastModified: file.lastModified,
+    });
+  } catch {
+    return file;
+  }
+}
 
 export function ServiceRequestStep({ labels }: Props) {
   const { member, loading, error, submitRequest, uploadImage } =
@@ -42,6 +115,7 @@ export function ServiceRequestStep({ labels }: Props) {
   const [note, setNote] = useState("");
   const [images, setImages] = useState<UploadingImage[]>([]);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [rejectionMessage, setRejectionMessage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!member) return null;
@@ -53,24 +127,34 @@ export function ServiceRequestStep({ labels }: Props) {
       const toAdd = Array.from(files).slice(0, remaining);
       if (toAdd.length === 0) return;
 
-      const newImages: UploadingImage[] = toAdd
-        .filter((f) => {
-          if (!ACCEPTED_TYPES.includes(f.type)) return false;
-          if (f.size > MAX_SIZE_MB * 1024 * 1024) return false;
-          return true;
-        })
-        .map((f) => ({
-          id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
-          file: f,
-          preview: URL.createObjectURL(f),
-          uploading: true,
-        }));
+      const rejected: string[] = [];
+      const accepted = toAdd.filter((f) => {
+        if (!ACCEPTED_TYPES.includes(f.type)) {
+          rejected.push(`${f.name}: unsupported file type`);
+          return false;
+        }
+        if (f.size > MAX_INPUT_SIZE_MB * 1024 * 1024) {
+          rejected.push(`${f.name}: larger than ${MAX_INPUT_SIZE_MB} MB`);
+          return false;
+        }
+        return true;
+      });
+
+      setRejectionMessage(rejected.length > 0 ? rejected.join("; ") : null);
+
+      const newImages: UploadingImage[] = accepted.map((f) => ({
+        id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        file: f,
+        preview: URL.createObjectURL(f),
+        uploading: true,
+      }));
 
       setImages((prev) => [...prev, ...newImages]);
 
       for (const img of newImages) {
         try {
-          const url = await uploadImage(img.file);
+          const compressed = await compressImage(img.file);
+          const url = await uploadImage(compressed);
           setImages((prev) =>
             prev.map((i) =>
               i.id === img.id ? { ...i, url, uploading: false } : i,
@@ -382,6 +466,18 @@ export function ServiceRequestStep({ labels }: Props) {
           >
             {labels.serviceRequestPhotosHint}
           </div>
+          {rejectionMessage && (
+            <div
+              role="alert"
+              style={{
+                fontSize: 12,
+                color: "#dc2626",
+                marginTop: 4,
+              }}
+            >
+              {rejectionMessage}
+            </div>
+          )}
         </div>
 
         {/* Name row */}

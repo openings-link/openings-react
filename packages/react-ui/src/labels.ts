@@ -71,7 +71,8 @@ export const defaultLabels: BookingLabels = {
   serviceRequestNotePlaceholder: "Tell us what you're looking for...",
   serviceRequestPhotos: "Reference photos (optional)",
   serviceRequestPhotosAdd: "Add",
-  serviceRequestPhotosHint: "Up to 10 images, 5 MB each",
+  serviceRequestPhotosHint:
+    "Up to 10 images. Large photos are resized automatically.",
   serviceRequestSubmit: "Send Request",
   serviceRequestSent: "Request Sent!",
   serviceRequestSentMessage:
