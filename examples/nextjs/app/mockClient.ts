@@ -140,6 +140,9 @@ const bookingStubs = {
       upcomingAppointments: [],
     };
   },
+  async fetchNextAvailability() {
+    return [];
+  },
   async sendVerification() {
     return { status: "sent", method: "sms" as const };
   },
