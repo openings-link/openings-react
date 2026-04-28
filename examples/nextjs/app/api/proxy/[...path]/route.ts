@@ -8,6 +8,8 @@ const ALLOWED_PREFIXES = [
   "v1/appointments",
   "v1/verifications",
   "v1/customers",
+  "v1/service-requests",
+  "v1/media",
 ];
 
 /** Headers that should NOT be forwarded to the upstream API. */
