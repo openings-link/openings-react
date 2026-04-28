@@ -598,9 +598,6 @@ export function OpeningsStep({
   } = useBookingFlow();
 
   const isMemberMode = !!selectedMemberId;
-  // Hide per-panel schedule name when member mode resolves to a single
-  // schedule — the title would just be visual noise.
-  const hideScheduleName = isMemberMode && memberOpenings.length === 1;
 
   // Auto-select today's date and first service are handled in
   // BookingWidgetInner so the openings fetch can kick off before this step
@@ -1243,132 +1240,129 @@ export function OpeningsStep({
                   }}
                 >
                   {/* Panel header: location in member mode, member info otherwise.
-                      Hidden entirely in member mode when there's only one
-                      schedule (the title would just be visual noise). */}
-                  {!(isMemberMode && hideScheduleName) && (
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 12,
-                        padding: "12px 14px",
-                        borderBottom:
-                          "1px solid var(--openings-border, #e5e5e5)",
-                      }}
-                    >
-                      {isMemberMode ? (
-                        <>
-                          {(() => {
-                            const scheduleImg = schedules.find(
-                              (s) =>
-                                s.id === member.schedule?.id ||
-                                s.title === member.schedule?.title,
-                            )?.images?.[0];
-                            // Render image only when one exists. No pin
-                            // fallback — keeps the header text-first when the
-                            // schedule has no photo.
-                            return scheduleImg ? (
-                              <img
-                                src={scheduleImg}
-                                alt={member.schedule?.title ?? ""}
-                                style={{
-                                  width: 40,
-                                  height: 40,
-                                  borderRadius: "var(--openings-radius, 8px)",
-                                  objectFit: "cover",
-                                  flexShrink: 0,
-                                }}
-                              />
-                            ) : null;
-                          })()}
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontWeight: 600, fontSize: 15 }}>
-                              {member.schedule?.title ?? "Schedule"}
-                            </div>
-                            {member.schedule?.address && (
-                              <div
-                                style={{
-                                  fontSize: 13,
-                                  color: "var(--openings-muted, #666)",
-                                  whiteSpace: "nowrap",
-                                  overflow: "hidden",
-                                  textOverflow: "ellipsis",
-                                }}
-                              >
-                                {member.schedule.address}
-                              </div>
-                            )}
-                          </div>
-                        </>
-                      ) : (
-                        <>
-                          {member.photo ? (
+                      Always shown in member mode so the customer can see which
+                      schedule the member will be working — even with a single
+                      location. */}
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 12,
+                      padding: "12px 14px",
+                      borderBottom: "1px solid var(--openings-border, #e5e5e5)",
+                    }}
+                  >
+                    {isMemberMode ? (
+                      <>
+                        {(() => {
+                          const scheduleImg = schedules.find(
+                            (s) =>
+                              s.id === member.schedule?.id ||
+                              s.title === member.schedule?.title,
+                          )?.images?.[0];
+                          // Render image only when one exists. No pin
+                          // fallback — keeps the header text-first when the
+                          // schedule has no photo.
+                          return scheduleImg ? (
                             <img
-                              src={member.photo}
-                              alt={member.name ?? ""}
+                              src={scheduleImg}
+                              alt={member.schedule?.title ?? ""}
                               style={{
-                                width: 40,
-                                height: 40,
-                                borderRadius: "50%",
+                                width: 32,
+                                height: 32,
+                                borderRadius: "var(--openings-radius, 8px)",
                                 objectFit: "cover",
                                 flexShrink: 0,
                               }}
                             />
-                          ) : (
+                          ) : null;
+                        })()}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: 600, fontSize: 13 }}>
+                            {member.schedule?.title ?? "Schedule"}
+                          </div>
+                          {member.schedule?.address && (
                             <div
                               style={{
-                                width: 40,
-                                height: 40,
-                                borderRadius: "50%",
-                                background: "var(--openings-surface, #f5f5f5)",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                fontWeight: 600,
-                                fontSize: 16,
+                                fontSize: 12,
                                 color: "var(--openings-muted, #666)",
-                                flexShrink: 0,
-                              }}
-                            >
-                              {member.name?.charAt(0)?.toUpperCase() ?? "?"}
-                            </div>
-                          )}
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div
-                              style={{
-                                fontWeight: 600,
-                                fontSize: 15,
+                                whiteSpace: "nowrap",
                                 overflow: "hidden",
                                 textOverflow: "ellipsis",
-                                whiteSpace: "nowrap",
                               }}
                             >
-                              {member.name}
+                              {member.schedule.address}
                             </div>
-                            {svc && (
-                              <div
-                                style={{
-                                  fontSize: 13,
-                                  color: "var(--openings-muted, #666)",
-                                }}
-                              >
-                                {svc.title ?? ""} ·{" "}
-                                {formatPrice(svc.price ?? 0)} ·{" "}
-                                {formatDuration(svc.duration ?? 0)}
-                              </div>
-                            )}
-                          </div>
-                          {onStaffInfoClick && (
-                            <StaffInfoButton
-                              member={member}
-                              label={labels.staffInfo}
-                              onClick={onStaffInfoClick}
-                            />
                           )}
-                        </>
-                      )}
-                    </div>
-                  )}
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        {member.photo ? (
+                          <img
+                            src={member.photo}
+                            alt={member.name ?? ""}
+                            style={{
+                              width: 40,
+                              height: 40,
+                              borderRadius: "50%",
+                              objectFit: "cover",
+                              flexShrink: 0,
+                            }}
+                          />
+                        ) : (
+                          <div
+                            style={{
+                              width: 40,
+                              height: 40,
+                              borderRadius: "50%",
+                              background: "var(--openings-surface, #f5f5f5)",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              fontWeight: 600,
+                              fontSize: 16,
+                              color: "var(--openings-muted, #666)",
+                              flexShrink: 0,
+                            }}
+                          >
+                            {member.name?.charAt(0)?.toUpperCase() ?? "?"}
+                          </div>
+                        )}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div
+                            style={{
+                              fontWeight: 600,
+                              fontSize: 15,
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            {member.name}
+                          </div>
+                          {svc && (
+                            <div
+                              style={{
+                                fontSize: 13,
+                                color: "var(--openings-muted, #666)",
+                              }}
+                            >
+                              {svc.title ?? ""} · {formatPrice(svc.price ?? 0)}{" "}
+                              · {formatDuration(svc.duration ?? 0)}
+                            </div>
+                          )}
+                        </div>
+                        {onStaffInfoClick && (
+                          <StaffInfoButton
+                            member={member}
+                            label={labels.staffInfo}
+                            onClick={onStaffInfoClick}
+                          />
+                        )}
+                      </>
+                    )}
+                  </div>
 
                   {/* Time slots grid — auto-fill so labels never wrap on
                       narrow modals. Min cell width keeps "10:00 am" on a
