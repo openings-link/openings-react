@@ -1037,31 +1037,6 @@ export function OpeningsStep({
             </div>
           )}
 
-        {/* Find Next Availability — only in member booking mode. Schedule
-            booking already shows multiple members per day, so a forward
-            search is less useful and clutters the empty state. */}
-        {isMemberMode &&
-          !isConsultation &&
-          !openingsLoading &&
-          membersWithSlots.length === 0 && (
-            <NextAvailabilityPanel
-              labels={labels}
-              isMemberMode={isMemberMode}
-              schedules={schedules}
-              onSelect={(date, scheduleId) => {
-                clearNextAvailability();
-                if (!isMemberMode && scheduleId) {
-                  // No-op: user is already on this schedule
-                }
-                selectDate(date);
-              }}
-              onSearch={() => findNextAvailability()}
-              loading={nextAvailabilityLoading}
-              error={nextAvailabilityError}
-              items={nextAvailability}
-            />
-          )}
-
         {/* ── Consultation mode: show members with "Send a Request" button ──
             Falls back to the schedule-detail `members` list when the openings
             API returned an empty set (e.g. selected day is a member's offday
@@ -1551,6 +1526,33 @@ export function OpeningsStep({
             })}
           </div>
         )}
+
+        {/* Find Next Availability — only in member booking mode. Schedule
+            booking already shows multiple members per day, so a forward
+            search is less useful and clutters the empty state. Rendered
+            after the "All booked" panels so the schedule context appears
+            first, then the forward-search affordance. */}
+        {isMemberMode &&
+          !isConsultation &&
+          !openingsLoading &&
+          membersWithSlots.length === 0 && (
+            <NextAvailabilityPanel
+              labels={labels}
+              isMemberMode={isMemberMode}
+              schedules={schedules}
+              onSelect={(date, scheduleId) => {
+                clearNextAvailability();
+                if (!isMemberMode && scheduleId) {
+                  // No-op: user is already on this schedule
+                }
+                selectDate(date);
+              }}
+              onSearch={() => findNextAvailability()}
+              loading={nextAvailabilityLoading}
+              error={nextAvailabilityError}
+              items={nextAvailability}
+            />
+          )}
       </div>
     </div>
   );
