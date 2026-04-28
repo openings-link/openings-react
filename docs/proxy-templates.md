@@ -32,7 +32,31 @@ v1/openings
 v1/appointments
 v1/verifications
 v1/customers
+v1/service-requests
+v1/media
 ```
+
+## Image uploads and serverless body limits
+
+The consultation/service-request flow POSTs base64-encoded images to
+`v1/media/upload-public`. Base64 inflates payloads by roughly 1.37×, so request
+size matters when proxying through serverless platforms:
+
+| Platform                      | Default body limit |
+| ----------------------------- | ------------------ |
+| Vercel Serverless Functions   | 4.5 MB             |
+| Vercel Edge Functions         | 4 MB               |
+| Netlify Functions             | 6 MB               |
+| AWS API Gateway               | 10 MB              |
+| Cloudflare Workers            | 100 MB             |
+
+The `@openings-link/react-ui` consultation form automatically downscales and
+recompresses JPEG/PNG/WebP images in the browser before upload (longest edge
+≤ 2048px, JPEG quality stepped down until the result fits ~2.5 MB). This lets
+users attach phone photos of any size without hitting these limits. Animated
+GIFs and HEIC/HEIF files pass through unchanged — most browsers convert HEIC
+to JPEG at the file picker, but if you serve customers on a platform that
+doesn't, consider rejecting HEIC server-side.
 
 ## Using the proxy from Openings React
 
@@ -64,6 +88,8 @@ const ALLOWED_PREFIXES = [
   "v1/appointments",
   "v1/verifications",
   "v1/customers",
+  "v1/service-requests",
+  "v1/media",
 ];
 
 const STRIP_HEADERS = new Set([
@@ -136,6 +162,8 @@ const ALLOWED_PREFIXES = [
   "v1/appointments",
   "v1/verifications",
   "v1/customers",
+  "v1/service-requests",
+  "v1/media",
 ];
 
 async function proxy(request: Request, path: string) {
@@ -193,6 +221,8 @@ const ALLOWED_PREFIXES = [
   "v1/appointments",
   "v1/verifications",
   "v1/customers",
+  "v1/service-requests",
+  "v1/media",
 ];
 
 app.use("/api/openings", express.text({ type: "*/*" }));
