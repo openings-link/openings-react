@@ -5,9 +5,17 @@ import type { BookingResult, BookingError } from "../types";
 type BookingStatus = "idle" | "verifying" | "booking" | "complete" | "error";
 
 interface UseBookingReturn {
-  /** Look up phone/email to determine new vs returning customer. Sends verification for new customers. */
+  /**
+   * Probe whether the entered phone number has any upcoming appointments,
+   * then route the user into the new-customer or returning-customer flow.
+   *
+   * For returning customers this triggers the booking OTP automatically
+   * (SMS only — email flows still need the email collected first). The
+   * full appointment list is NOT fetched — that requires an explicit
+   * "manage existing" action via `useAppointmentHistory()`.
+   */
   lookupCustomer: () => Promise<
-    { phase: "new-customer" } | { phase: "returning"; customerId: string }
+    { phase: "new-customer" } | { phase: "returning" }
   >;
   /** Send verification code to phone/email. */
   sendVerification: () => Promise<void>;
@@ -96,28 +104,48 @@ export function useBooking(): UseBookingReturn {
   ]);
 
   const lookupCustomer = useCallback(async (): Promise<
-    { phase: "new-customer" } | { phase: "returning"; customerId: string }
+    { phase: "new-customer" } | { phase: "returning" }
   > => {
     if (!state.business) throw new Error("Business not loaded");
+    const businessId = state.business.id;
     dispatch({ type: "SET_LOADING", loading: true });
     dispatch({ type: "SET_ERROR", error: null });
     try {
+      // PII-safe probe: returns only `{ hasUpcomingAppointments }` —
+      // no times, no prices, no customerId. The full payload is gated
+      // behind the history OTP (see useAppointmentHistory).
+      let hasUpcoming = false;
       if (state.phoneNumber) {
-        const history = await apiClient.fetchAppointmentHistory(
-          state.phoneNumber,
-          state.business.id,
-        );
-        if (history.customerId) {
-          dispatch({
-            type: "SET_CUSTOMER_ID",
-            customerId: history.customerId,
+        dispatch({ type: "HISTORY_PROBE_STARTED" });
+        try {
+          const probe = await apiClient.probeAppointmentHistory({
+            phoneNumber: state.phoneNumber,
+            businessId,
           });
-          dispatch({ type: "SET_VERIFY_PHASE", phase: "returning" });
-          callbacks.onVerificationComplete?.(history.customerId);
-          return { phase: "returning", customerId: history.customerId };
+          hasUpcoming = probe.hasUpcomingAppointments;
+          dispatch({
+            type: "HISTORY_PROBE_SUCCEEDED",
+            hasUpcomingAppointments: hasUpcoming,
+          });
+        } catch {
+          dispatch({ type: "HISTORY_PROBE_FAILED" });
+          // Fall through — treat as new customer if probe fails.
         }
       }
-      // New customer — send verification code
+      if (hasUpcoming) {
+        // Probable returning customer. We don't have the customerId
+        // (it's behind history OTP) — the appointment-create endpoint
+        // resolves the customer server-side from phoneNumber + a valid
+        // booking OTP at create time. Auto-send the booking code so the
+        // user lands on the code-entry screen.
+        dispatch({ type: "SET_VERIFY_PHASE", phase: "returning" });
+        if (state.business.verificationMethod !== "EMAIL") {
+          await sendVerification();
+        }
+        return { phase: "returning" };
+      }
+      // New customer — collect name first; OTP is sent when the user
+      // submits the name form (existing UX).
       await sendVerification();
       dispatch({ type: "SET_VERIFY_PHASE", phase: "new-customer" });
       return { phase: "new-customer" };
@@ -159,23 +187,15 @@ export function useBooking(): UseBookingReturn {
           throw new Error("Invalid verification code");
         }
         dispatch({ type: "SET_VERIFICATION_CODE", code });
-
-        // Only check history if lookupCustomer hasn't already determined the phase
-        if (state.verifyPhase === "phone" && state.phoneNumber) {
-          const history = await apiClient.fetchAppointmentHistory(
-            state.phoneNumber,
-            state.business.id,
-          );
-          if (history.customerId) {
-            dispatch({
-              type: "SET_CUSTOMER_ID",
-              customerId: history.customerId,
-            });
-            dispatch({ type: "SET_VERIFY_PHASE", phase: "returning" });
-            callbacks.onVerificationComplete?.(history.customerId);
-          } else {
-            dispatch({ type: "SET_VERIFY_PHASE", phase: "new-customer" });
-          }
+        // We deliberately do NOT call /appointments/history here. The
+        // booking-create endpoint resolves an existing customer from
+        // phoneNumber + the verified OTP server-side; pulling the full
+        // history (with PII) requires the separate history OTP gate
+        // (see useAppointmentHistory). If verifyPhase is still "phone"
+        // it means the consumer skipped lookupCustomer — leave it in
+        // "new-customer" mode so the existing UI collects a name.
+        if (state.verifyPhase === "phone") {
+          dispatch({ type: "SET_VERIFY_PHASE", phase: "new-customer" });
         }
       } catch (err) {
         const error: BookingError = {
@@ -212,20 +232,24 @@ export function useBooking(): UseBookingReturn {
           state.selectedMemberOpenings.userId ??
           state.selectedMemberOpenings.teamMemberId ??
           "";
-        const result = await apiClient.createCustomer({
+        // The public /customers/booking endpoint creates the customer
+        // record but no longer returns its id (PII reduction). The
+        // appointment-create endpoint resolves the customer from
+        // phoneNumber + verified OTP at create time — no need to
+        // round-trip the id through the client.
+        await apiClient.createCustomer({
           businessId: state.business.id,
           userId,
           firstName: input.firstName,
           lastName: input.lastName,
-          phoneNumber: state.phoneNumber,
+          phoneNumber: state.phoneNumber || undefined,
+          email: state.email || undefined,
         });
-        dispatch({ type: "SET_CUSTOMER_ID", customerId: result.customerId });
         dispatch({
           type: "SET_CUSTOMER_NAME",
           firstName: input.firstName,
           lastName: input.lastName,
         });
-        callbacks.onVerificationComplete?.(result.customerId);
       } catch (err) {
         dispatch({
           type: "SET_ERROR",
@@ -241,9 +265,9 @@ export function useBooking(): UseBookingReturn {
       state.business,
       state.selectedMemberOpenings,
       state.phoneNumber,
+      state.email,
       apiClient,
       dispatch,
-      callbacks,
     ],
   );
 
@@ -253,13 +277,20 @@ export function useBooking(): UseBookingReturn {
       customerIdOverride?: string,
     ): Promise<BookingResult> => {
       const effectiveCustomerId = customerIdOverride ?? state.customerId;
+      // customerId is now optional — the server resolves the customer
+      // from phoneNumber/email + verified OTP. Require at least one
+      // identifier so the book call can succeed.
+      const hasIdentifier =
+        Boolean(effectiveCustomerId) ||
+        Boolean(state.phoneNumber) ||
+        Boolean(state.email);
       if (
         !state.business ||
         !state.selectedScheduleId ||
         !state.selectedMemberOpenings ||
         !state.selectedTime ||
         !state.selectedDate ||
-        !effectiveCustomerId
+        !hasIdentifier
       ) {
         throw new Error("Incomplete booking state");
       }
@@ -280,7 +311,9 @@ export function useBooking(): UseBookingReturn {
           businessId: state.business.id,
           userId,
           scheduleId: appointmentScheduleId,
-          customerId: effectiveCustomerId,
+          customerId: effectiveCustomerId ?? undefined,
+          phoneNumber: state.phoneNumber || undefined,
+          email: state.email || undefined,
           teamMemberId: state.selectedMemberOpenings.teamMemberId ?? undefined,
           services: state.selectedServices.map((s) => ({
             id: s.id,

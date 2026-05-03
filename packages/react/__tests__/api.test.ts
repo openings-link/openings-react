@@ -138,6 +138,96 @@ describe("createApiClient", () => {
     });
   });
 
+  describe("appointment history (PII-gated)", () => {
+    it("probeAppointmentHistory hits the unverified endpoint and returns the boolean", async () => {
+      globalThis.fetch = mockFetch({
+        ok: true,
+        data: { hasUpcomingAppointments: true },
+      });
+
+      const client = createApiClient(BASE);
+      const res = await client.probeAppointmentHistory({
+        phoneNumber: "+15551234567",
+        businessId: "b1",
+      });
+
+      expect(res).toEqual({ hasUpcomingAppointments: true });
+      const url = (fetch as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      expect(url).toBe(
+        `${BASE}/v1/appointments/history/${encodeURIComponent(
+          "+15551234567",
+        )}?salonId=b1`,
+      );
+      // The probe MUST NOT pass a verificationCode — that's the PII gate.
+      expect(url).not.toContain("verificationCode");
+    });
+
+    it("getAppointmentHistory passes the verificationCode and returns the full payload", async () => {
+      const full = {
+        hasUpcomingAppointments: true,
+        upcomingAppointments: [
+          {
+            id: "a1",
+            appointmentId: "a1",
+            date: "2026-05-10",
+            time: "10:00",
+            formattedDatetime: "Sun, May 10 at 10:00 AM",
+            isCanceled: false,
+            services: [],
+          },
+        ],
+        customerId: "cust_1",
+        needCreditCard: false,
+      };
+      globalThis.fetch = mockFetch({ ok: true, data: full });
+
+      const client = createApiClient(BASE);
+      const res = await client.getAppointmentHistory({
+        phoneNumber: "+15551234567",
+        businessId: "b1",
+        verificationCode: "123456",
+      });
+
+      expect(res).toEqual(full);
+      const url = (fetch as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      expect(url).toContain("salonId=b1");
+      expect(url).toContain("verificationCode=123456");
+    });
+
+    it("does not expose the legacy fetchAppointmentHistory method", () => {
+      const client = createApiClient(BASE);
+      expect(
+        (client as unknown as Record<string, unknown>).fetchAppointmentHistory,
+      ).toBeUndefined();
+    });
+  });
+
+  describe("verification purposes", () => {
+    it("sendVerification defaults to booking purpose", async () => {
+      globalThis.fetch = mockFetch({ ok: true, data: { status: "sent" } });
+      const client = createApiClient(BASE);
+      await client.sendVerification({ phoneNumber: "+1", businessId: "b1" });
+      const body = JSON.parse(
+        (fetch as ReturnType<typeof vi.fn>).mock.calls[0][1].body,
+      );
+      expect(body.purpose).toBe("booking:b1");
+    });
+
+    it("sendVerification supports history purpose", async () => {
+      globalThis.fetch = mockFetch({ ok: true, data: { status: "sent" } });
+      const client = createApiClient(BASE);
+      await client.sendVerification({
+        phoneNumber: "+1",
+        businessId: "b1",
+        purpose: "history",
+      });
+      const body = JSON.parse(
+        (fetch as ReturnType<typeof vi.fn>).mock.calls[0][1].body,
+      );
+      expect(body.purpose).toBe("history:b1");
+    });
+  });
+
   describe("error handling", () => {
     it("throws with error message from API", async () => {
       globalThis.fetch = mockFetch(

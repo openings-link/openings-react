@@ -9,6 +9,7 @@ import type {
   BookingResult,
   ServiceRequestResult,
   NextAvailabilityItem,
+  AppointmentHistoryFullResponse,
 } from "./types";
 
 /* ─── State ─── */
@@ -60,6 +61,28 @@ export interface BookingState {
   /* Service request (consultation) */
   serviceRequestMember: MemberOpenings | null;
   serviceRequestResult: ServiceRequestResult | null;
+
+  /*
+   * Appointment history (lazy-verify branch).
+   *
+   * `historyProbe` is auto-fetched when a phone number is entered — it's
+   * cheap and reveals only `{ hasUpcomingAppointments }`. The library does
+   * NOT auto-trigger the history OTP. The full payload (`verifiedHistory`)
+   * is only requested when the consumer explicitly dispatches
+   * `MANAGE_EXISTING_CHOSEN` and verifies a `history:{businessId}` code.
+   */
+  historyProbe: {
+    status: "idle" | "loading" | "ready" | "error";
+    hasUpcomingAppointments: boolean | null;
+  };
+  historyVerification: {
+    sent: boolean;
+    status: "idle" | "verifying" | "verified" | "error";
+    error: string | null;
+  };
+  verifiedHistory: AppointmentHistoryFullResponse | null;
+  /** Whether the consumer has clicked "manage existing appointment" — gates the OTP. */
+  manageExistingChosen: boolean;
 }
 
 export const initialState: BookingState = {
@@ -104,6 +127,11 @@ export const initialState: BookingState = {
 
   serviceRequestMember: null,
   serviceRequestResult: null,
+
+  historyProbe: { status: "idle", hasUpcomingAppointments: null },
+  historyVerification: { sent: false, status: "idle", error: null },
+  verifiedHistory: null,
+  manageExistingChosen: false,
 };
 
 /* ─── Actions ─── */
@@ -159,6 +187,22 @@ export type BookingAction =
       type: "SET_SERVICE_REQUEST_RESULT";
       result: ServiceRequestResult;
     }
+  /* Appointment history (lazy-verify) */
+  | { type: "HISTORY_PROBE_STARTED" }
+  | {
+      type: "HISTORY_PROBE_SUCCEEDED";
+      hasUpcomingAppointments: boolean;
+    }
+  | { type: "HISTORY_PROBE_FAILED" }
+  | { type: "MANAGE_EXISTING_CHOSEN" }
+  | { type: "HISTORY_VERIFICATION_SENT" }
+  | { type: "HISTORY_VERIFICATION_STARTED" }
+  | {
+      type: "HISTORY_VERIFICATION_VERIFIED";
+      payload: AppointmentHistoryFullResponse;
+    }
+  | { type: "HISTORY_VERIFICATION_FAILED"; error: string }
+  | { type: "RESET_HISTORY" }
   | { type: "RESET" };
 
 /* ─── Reducer ─── */
@@ -271,7 +315,16 @@ export function bookingReducer(
         ),
       };
     case "SET_PHONE":
-      return { ...state, phoneNumber: action.phoneNumber };
+      return {
+        ...state,
+        phoneNumber: action.phoneNumber,
+        // Reset probe + history when phone changes (stale results would
+        // mislead the UI's "I have an existing appointment" CTA).
+        historyProbe: { status: "idle", hasUpcomingAppointments: null },
+        historyVerification: { sent: false, status: "idle", error: null },
+        verifiedHistory: null,
+        manageExistingChosen: false,
+      };
     case "SET_EMAIL":
       return { ...state, email: action.email };
     case "SET_VERIFICATION_CODE":
@@ -303,6 +356,71 @@ export function bookingReducer(
         serviceRequestResult: action.result,
         step: "confirm",
         error: null,
+      };
+    case "HISTORY_PROBE_STARTED":
+      return {
+        ...state,
+        historyProbe: {
+          status: "loading",
+          hasUpcomingAppointments:
+            state.historyProbe.hasUpcomingAppointments,
+        },
+      };
+    case "HISTORY_PROBE_SUCCEEDED":
+      return {
+        ...state,
+        historyProbe: {
+          status: "ready",
+          hasUpcomingAppointments: action.hasUpcomingAppointments,
+        },
+      };
+    case "HISTORY_PROBE_FAILED":
+      return {
+        ...state,
+        historyProbe: { status: "error", hasUpcomingAppointments: null },
+      };
+    case "MANAGE_EXISTING_CHOSEN":
+      return { ...state, manageExistingChosen: true };
+    case "HISTORY_VERIFICATION_SENT":
+      return {
+        ...state,
+        historyVerification: { sent: true, status: "idle", error: null },
+      };
+    case "HISTORY_VERIFICATION_STARTED":
+      return {
+        ...state,
+        historyVerification: {
+          sent: state.historyVerification.sent,
+          status: "verifying",
+          error: null,
+        },
+      };
+    case "HISTORY_VERIFICATION_VERIFIED":
+      return {
+        ...state,
+        historyVerification: {
+          sent: true,
+          status: "verified",
+          error: null,
+        },
+        verifiedHistory: action.payload,
+      };
+    case "HISTORY_VERIFICATION_FAILED":
+      return {
+        ...state,
+        historyVerification: {
+          sent: state.historyVerification.sent,
+          status: "error",
+          error: action.error,
+        },
+      };
+    case "RESET_HISTORY":
+      return {
+        ...state,
+        historyProbe: { status: "idle", hasUpcomingAppointments: null },
+        historyVerification: { sent: false, status: "idle", error: null },
+        verifiedHistory: null,
+        manageExistingChosen: false,
       };
     case "RESET":
       // Preserve business + schedules (no need to refetch) AND the original

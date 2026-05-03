@@ -9,6 +9,7 @@ export { useOpenings } from "./hooks/useOpenings";
 export { useBooking } from "./hooks/useBooking";
 export { useBookingFlow } from "./hooks/useBookingFlow";
 export { useServiceRequest } from "./hooks/useServiceRequest";
+export { useAppointmentHistory } from "./hooks/useAppointmentHistory";
 
 // ── Utilities ──
 export { formatTime, formatPrice, formatDuration } from "./format";
@@ -33,6 +34,9 @@ export type {
   OpeningsCallbacks,
   BookingEntry,
   ConsultationRequest,
+  AppointmentHistoryProbeResponse,
+  AppointmentHistoryFullResponse,
+  AppointmentHistoryItem,
 } from "./types";
 
 // ── API client (for advanced usage / testing) ──

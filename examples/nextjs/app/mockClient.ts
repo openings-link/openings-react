@@ -133,11 +133,32 @@ const TIME_BLOCKS = [
 /* ─── Shared booking stubs ─── */
 
 const bookingStubs = {
-  async fetchAppointmentHistory() {
+  async probeAppointmentHistory({ phoneNumber }: { phoneNumber: string }) {
+    // Demo trigger: any phone ending in "00" pretends to have an existing
+    // appointment so the secondary CTA can be exercised in the demo.
+    return { hasUpcomingAppointments: phoneNumber.trim().endsWith("00") };
+  },
+  async getAppointmentHistory({ verificationCode }: { verificationCode: string }) {
+    if (verificationCode !== "1234") {
+      throw new Error("Invalid verification code");
+    }
     return {
-      customerId: undefined,
+      hasUpcomingAppointments: true,
+      customerId: "cust_demo_001",
       needCreditCard: false,
-      upcomingAppointments: [],
+      upcomingAppointments: [
+        {
+          id: "apt_demo_history_1",
+          appointmentId: "apt_demo_history_1",
+          date: "2026-05-12",
+          time: "10:00",
+          formattedDatetime: "Tue, May 12 at 10:00 AM",
+          duration: 45,
+          price: 4500,
+          isCanceled: false,
+          services: [] as never[],
+        },
+      ],
     };
   },
   async fetchNextAvailability() {
@@ -150,7 +171,7 @@ const bookingStubs = {
     return { verified: true };
   },
   async createCustomer() {
-    return { customerId: "cust_demo_001", alreadyExists: false };
+    return { ok: true };
   },
   async createAppointment(_input: { date: string; time: string }) {
     return {

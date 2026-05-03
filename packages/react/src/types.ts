@@ -122,6 +122,42 @@ export interface BookingResult {
   time: string;
 }
 
+/* ─── Appointment history ─── */
+
+/**
+ * Probe response — returned without a verification code.
+ * Reveals only whether the phone/email has any upcoming appointments.
+ * No PII (no times, prices, durations, customer id).
+ */
+export interface AppointmentHistoryProbeResponse {
+  hasUpcomingAppointments: boolean;
+}
+
+export interface AppointmentHistoryItem {
+  id: string;
+  appointmentId: string;
+  date: string;
+  time: string;
+  formattedDatetime: string;
+  price?: number;
+  duration?: number;
+  isCanceled: boolean;
+  /** Currently empty — kept for forward compatibility. */
+  services: never[];
+}
+
+/**
+ * Full history response — returned only when a valid `history:{salonId}`
+ * verification code is supplied. The code stays alive within its TTL so
+ * subsequent calls within the session re-use it.
+ */
+export interface AppointmentHistoryFullResponse {
+  hasUpcomingAppointments: boolean;
+  upcomingAppointments: AppointmentHistoryItem[];
+  customerId: string;
+  needCreditCard: boolean;
+}
+
 /* ─── Service request result ─── */
 
 export interface ServiceRequestResult {

@@ -15,6 +15,8 @@ import type {
   BookingResult,
   ServiceRequestResult,
   NextAvailabilityItem,
+  AppointmentHistoryProbeResponse,
+  AppointmentHistoryFullResponse,
 } from "./types";
 
 /* ─── Internal response types ─── */
@@ -35,19 +37,7 @@ interface VerifyCodeResult {
 }
 
 interface CreateCustomerResult {
-  customerId: string;
-  alreadyExists?: boolean;
-}
-
-interface AppointmentHistoryResult {
-  customerId?: string;
-  needCreditCard: boolean;
-  upcomingAppointments: {
-    id: string;
-    appointmentId: string;
-    date: string;
-    time: string;
-  }[];
+  ok: boolean;
 }
 
 /* ─── Fetch helper ─── */
@@ -108,33 +98,67 @@ export interface ApiClient {
     serviceDuration: number;
     days?: number;
   }): Promise<NextAvailabilityItem[]>;
-  fetchAppointmentHistory(
-    phoneNumber: string,
-    businessId: string,
-  ): Promise<AppointmentHistoryResult>;
+  /**
+   * Probe whether a phone number has any upcoming appointments at a business.
+   * Reveals only `{ hasUpcomingAppointments: boolean }` — no PII.
+   *
+   * To retrieve the full appointment list (times, prices, customer id), the
+   * user must verify ownership of the phone via OTP and then call
+   * `getAppointmentHistory` with the resulting verification code.
+   */
+  probeAppointmentHistory(input: {
+    phoneNumber: string;
+    businessId: string;
+    signal?: AbortSignal;
+  }): Promise<AppointmentHistoryProbeResponse>;
+  /**
+   * Retrieve the full appointment history. Requires a verification code with
+   * `purpose: history:{businessId}` (sent via `sendVerification` with that
+   * purpose). The server checks the code is still alive within its TTL —
+   * peek-only, the code is not consumed.
+   */
+  getAppointmentHistory(input: {
+    phoneNumber: string;
+    businessId: string;
+    verificationCode: string;
+    signal?: AbortSignal;
+  }): Promise<AppointmentHistoryFullResponse>;
   sendVerification(opts: {
     phoneNumber?: string;
     email?: string;
     businessId: string;
+    /**
+     * Verification purpose. Defaults to `"booking"`.
+     * - `"booking"`: required for `createAppointment` (`booking:{businessId}`).
+     * - `"history"`: required for `getAppointmentHistory` (`history:{businessId}`).
+     */
+    purpose?: "booking" | "history";
   }): Promise<SendVerificationResult>;
   verifyCode(opts: {
     phoneNumber?: string;
     email?: string;
     code: string;
     businessId: string;
+    /** Defaults to `"booking"`. Must match the purpose used when sending. */
+    purpose?: "booking" | "history";
   }): Promise<VerifyCodeResult>;
   createCustomer(input: {
     businessId: string;
     userId: string;
     firstName: string;
     lastName: string;
-    phoneNumber: string;
+    phoneNumber?: string;
+    email?: string;
   }): Promise<CreateCustomerResult>;
   createAppointment(input: {
     businessId: string;
     userId: string;
     scheduleId: string;
-    customerId: string;
+    /** Optional — server resolves customer from `phoneNumber` + verified OTP. */
+    customerId?: string;
+    /** Required when `customerId` is omitted. */
+    phoneNumber?: string;
+    email?: string;
     teamMemberId?: string;
     services: { id: string; optionId?: string }[];
     date: string;
@@ -222,17 +246,36 @@ export function createApiClient(baseUrl: string): ApiClient {
       );
     },
 
-    fetchAppointmentHistory(phoneNumber, businessId) {
+    probeAppointmentHistory({ phoneNumber, businessId, signal }) {
       const qs = new URLSearchParams({ salonId: businessId });
-      return api<AppointmentHistoryResult>(
+      return api<AppointmentHistoryProbeResponse>(
         baseUrl,
         `/v1/appointments/history/${encodeURIComponent(phoneNumber)}?${qs.toString()}`,
+        signal ? { signal } : undefined,
+      );
+    },
+
+    getAppointmentHistory({
+      phoneNumber,
+      businessId,
+      verificationCode,
+      signal,
+    }) {
+      const qs = new URLSearchParams({
+        salonId: businessId,
+        verificationCode,
+      });
+      return api<AppointmentHistoryFullResponse>(
+        baseUrl,
+        `/v1/appointments/history/${encodeURIComponent(phoneNumber)}?${qs.toString()}`,
+        signal ? { signal } : undefined,
       );
     },
 
     sendVerification(opts) {
+      const purpose = opts.purpose ?? "booking";
       const body: Record<string, string> = {
-        purpose: `booking:${opts.businessId}`,
+        purpose: `${purpose}:${opts.businessId}`,
       };
       if (opts.phoneNumber) body.phoneNumber = opts.phoneNumber;
       if (opts.email) body.email = opts.email;
@@ -243,9 +286,10 @@ export function createApiClient(baseUrl: string): ApiClient {
     },
 
     verifyCode(opts) {
+      const purpose = opts.purpose ?? "booking";
       const body: Record<string, string> = {
         code: opts.code,
-        purpose: `booking:${opts.businessId}`,
+        purpose: `${purpose}:${opts.businessId}`,
       };
       if (opts.phoneNumber) body.phoneNumber = opts.phoneNumber;
       if (opts.email) body.email = opts.email;
@@ -256,32 +300,38 @@ export function createApiClient(baseUrl: string): ApiClient {
     },
 
     createCustomer(input) {
+      const body: Record<string, string> = {
+        salonId: input.businessId,
+        userId: input.userId,
+        firstName: input.firstName,
+        lastName: input.lastName,
+      };
+      if (input.phoneNumber) body.phoneNumber = input.phoneNumber;
+      if (input.email) body.email = input.email;
       return api<CreateCustomerResult>(baseUrl, "/v1/customers/booking", {
         method: "POST",
-        body: JSON.stringify({
-          salonId: input.businessId,
-          userId: input.userId,
-          firstName: input.firstName,
-          lastName: input.lastName,
-          phoneNumber: input.phoneNumber,
-        }),
+        body: JSON.stringify(body),
       });
     },
 
     createAppointment(input) {
+      const body: Record<string, unknown> = {
+        salonId: input.businessId,
+        userId: input.userId,
+        scheduleId: input.scheduleId,
+        services: input.services,
+        date: input.date,
+        time: input.time,
+      };
+      if (input.customerId) body.customerId = input.customerId;
+      if (input.phoneNumber) body.phoneNumber = input.phoneNumber;
+      if (input.email) body.email = input.email;
+      if (input.teamMemberId) body.teamMemberId = input.teamMemberId;
+      if (input.verificationCode)
+        body.verificationCode = input.verificationCode;
       return api<BookingResult>(baseUrl, "/v1/appointments/create", {
         method: "POST",
-        body: JSON.stringify({
-          salonId: input.businessId,
-          userId: input.userId,
-          scheduleId: input.scheduleId,
-          customerId: input.customerId,
-          teamMemberId: input.teamMemberId,
-          services: input.services,
-          date: input.date,
-          time: input.time,
-          verificationCode: input.verificationCode,
-        }),
+        body: JSON.stringify(body),
       });
     },
 

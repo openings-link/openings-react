@@ -1,6 +1,6 @@
 {
   "name": "@openings-link/react",
-  "version": "0.1.2",
+  "version": "2.0.0",
   "description": "Headless React hooks for building booking interfaces with Openings. Zero dependencies.",
   "author": "Openings <dev@openings.link> (https://openings.link)",
   "type": "module",

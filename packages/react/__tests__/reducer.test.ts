@@ -336,4 +336,96 @@ describe("bookingReducer", () => {
       expect(next.serviceRequestResult).toBeNull();
     });
   });
+
+  describe("appointment history (lazy-verify)", () => {
+    it("starts with idle probe + no verified history", () => {
+      expect(initialState.historyProbe).toEqual({
+        status: "idle",
+        hasUpcomingAppointments: null,
+      });
+      expect(initialState.verifiedHistory).toBeNull();
+      expect(initialState.manageExistingChosen).toBe(false);
+    });
+
+    it("HISTORY_PROBE_SUCCEEDED stores the boolean", () => {
+      const next = bookingReducer(initialState, {
+        type: "HISTORY_PROBE_SUCCEEDED",
+        hasUpcomingAppointments: true,
+      });
+      expect(next.historyProbe).toEqual({
+        status: "ready",
+        hasUpcomingAppointments: true,
+      });
+      // Probe MUST NOT auto-trigger the OTP — that's the whole point of
+      // lazy-verify. manageExistingChosen stays false until the consumer
+      // explicitly opts in.
+      expect(next.manageExistingChosen).toBe(false);
+      expect(next.verifiedHistory).toBeNull();
+    });
+
+    it("MANAGE_EXISTING_CHOSEN flips the gate without sending an OTP", () => {
+      const probed = bookingReducer(initialState, {
+        type: "HISTORY_PROBE_SUCCEEDED",
+        hasUpcomingAppointments: true,
+      });
+      const next = bookingReducer(probed, { type: "MANAGE_EXISTING_CHOSEN" });
+      expect(next.manageExistingChosen).toBe(true);
+      // Sending the OTP is a separate action — the reducer doesn't fire
+      // network calls, so HISTORY_VERIFICATION_SENT is dispatched only
+      // after the hook awaits the request.
+      expect(next.historyVerification.sent).toBe(false);
+    });
+
+    it("HISTORY_VERIFICATION_VERIFIED stores the full payload", () => {
+      const payload = {
+        hasUpcomingAppointments: true,
+        upcomingAppointments: [
+          {
+            id: "a1",
+            appointmentId: "a1",
+            date: "2026-05-10",
+            time: "10:00",
+            formattedDatetime: "Sun, May 10 at 10:00 AM",
+            isCanceled: false,
+            services: [] as never[],
+          },
+        ],
+        customerId: "cust_1",
+        needCreditCard: false,
+      };
+      const next = bookingReducer(initialState, {
+        type: "HISTORY_VERIFICATION_VERIFIED",
+        payload,
+      });
+      expect(next.verifiedHistory).toEqual(payload);
+      expect(next.historyVerification.status).toBe("verified");
+    });
+
+    it("SET_PHONE clears stale probe + history", () => {
+      const dirty: BookingState = {
+        ...initialState,
+        historyProbe: {
+          status: "ready",
+          hasUpcomingAppointments: true,
+        },
+        manageExistingChosen: true,
+        verifiedHistory: {
+          hasUpcomingAppointments: true,
+          upcomingAppointments: [],
+          customerId: "cust_1",
+          needCreditCard: false,
+        },
+      };
+      const next = bookingReducer(dirty, {
+        type: "SET_PHONE",
+        phoneNumber: "+15559999999",
+      });
+      expect(next.historyProbe).toEqual({
+        status: "idle",
+        hasUpcomingAppointments: null,
+      });
+      expect(next.manageExistingChosen).toBe(false);
+      expect(next.verifiedHistory).toBeNull();
+    });
+  });
 });
