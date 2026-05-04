@@ -362,8 +362,7 @@ export function bookingReducer(
         ...state,
         historyProbe: {
           status: "loading",
-          hasUpcomingAppointments:
-            state.historyProbe.hasUpcomingAppointments,
+          hasUpcomingAppointments: state.historyProbe.hasUpcomingAppointments,
         },
       };
     case "HISTORY_PROBE_SUCCEEDED":

@@ -133,12 +133,16 @@ const TIME_BLOCKS = [
 /* ─── Shared booking stubs ─── */
 
 const bookingStubs = {
-  async probeAppointmentHistory({ phoneNumber }: { phoneNumber: string }) {
+his  async probeAppointmentHistory({ phoneNumber }: { phoneNumber: string }) {
     // Demo trigger: any phone ending in "00" pretends to have an existing
     // appointment so the secondary CTA can be exercised in the demo.
     return { hasUpcomingAppointments: phoneNumber.trim().endsWith("00") };
   },
-  async getAppointmentHistory({ verificationCode }: { verificationCode: string }) {
+  async getAppointmentHistory({
+    verificationCode,
+  }: {
+    verificationCode: string;
+  }) {
     if (verificationCode !== "1234") {
       throw new Error("Invalid verification code");
     }

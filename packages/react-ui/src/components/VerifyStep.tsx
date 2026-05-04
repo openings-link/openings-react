@@ -218,8 +218,8 @@ export function VerifyStep({ labels }: Props) {
               lineHeight: 1.4,
             }}
           >
-            To reschedule or cancel, contact the business directly. The
-            headless <code>useBooking()</code> hook in
+            To reschedule or cancel, contact the business directly. The headless{" "}
+            <code>useBooking()</code> hook in
             <code> @openings-link/react </code>
             exposes the underlying endpoints for custom UIs.
           </p>
@@ -266,9 +266,7 @@ export function VerifyStep({ labels }: Props) {
               textAlign: "center",
               fontSize: 20,
               fontWeight: 600,
-              ...(history.verification.error
-                ? { borderColor: "#dc2626" }
-                : {}),
+              ...(history.verification.error ? { borderColor: "#dc2626" } : {}),
             }}
           />
           {history.verification.error && (

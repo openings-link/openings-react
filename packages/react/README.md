@@ -8,10 +8,10 @@ Zero dependencies. React 18+ only.
 ## Migrating from 1.x to 2.0
 
 Version 2.0 changes how appointment history is fetched to close a PII
-enumeration oracle in the Openings public API. The unverified history
-endpoint now reveals only `{ hasUpcomingAppointments: boolean }` — no
-times, prices, durations, or `customerId`. The full payload is gated
-behind an explicit ownership-of-phone proof (OTP).
+enumeration oracle in the Openings public API. The unverified history endpoint
+now reveals only `{ hasUpcomingAppointments: boolean }` — no times, prices,
+durations, or `customerId`. The full payload is gated behind an explicit
+ownership-of-phone proof (OTP).
 
 **Before (1.x):**
 
@@ -46,13 +46,13 @@ const full = await client.getAppointmentHistory({
 // → { hasUpcomingAppointments, upcomingAppointments, customerId, needCreditCard }
 ```
 
-The `<BookingWidget />` component in `@openings-link/react-ui` handles
-this flow automatically (lazy-verify: the OTP only fires when the user
-clicks "I have an existing appointment"). For new bookings there is
-zero added friction — the booking-flow OTP is unchanged.
+The `<BookingWidget />` component in `@openings-link/react-ui` handles this flow
+automatically (lazy-verify: the OTP only fires when the user clicks "I have an
+existing appointment"). For new bookings there is zero added friction — the
+booking-flow OTP is unchanged.
 
-A new headless hook, `useAppointmentHistory()`, exposes the lazy-verify
-state machine for custom UIs:
+A new headless hook, `useAppointmentHistory()`, exposes the lazy-verify state
+machine for custom UIs:
 
 ```ts
 const {
@@ -69,12 +69,13 @@ const {
 - `apiClient.createCustomer()` no longer returns `customerId`. The
   appointment-create endpoint resolves the customer server-side from the
   verified phone (or email) at booking time.
-- `apiClient.createAppointment()` accepts `phoneNumber` / `email` and
-  treats `customerId` as optional.
-- `apiClient.sendVerification()` and `verifyCode()` accept a `purpose`
-  option (`"booking"` (default) or `"history"`).
-- `useBooking().lookupCustomer()` returns `{ phase: "new-customer" | "returning" }`
-  (the old `customerId` field is gone).
+- `apiClient.createAppointment()` accepts `phoneNumber` / `email` and treats
+  `customerId` as optional.
+- `apiClient.sendVerification()` and `verifyCode()` accept a `purpose` option
+  (`"booking"` (default) or `"history"`).
+- `useBooking().lookupCustomer()` returns
+  `{ phase: "new-customer" | "returning" }` (the old `customerId` field is
+  gone).
 
 ## Install
 

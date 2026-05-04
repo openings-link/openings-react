@@ -102,7 +102,9 @@ export function useAppointmentHistory(): UseAppointmentHistoryReturn {
   const sendCode = useCallback(async () => {
     if (!state.business) throw new Error("Business not loaded");
     if (!state.phoneNumber)
-      throw new Error("Phone number is required to manage existing appointments");
+      throw new Error(
+        "Phone number is required to manage existing appointments",
+      );
     await apiClient.sendVerification({
       phoneNumber: state.phoneNumber,
       businessId: state.business.id,
@@ -114,8 +116,7 @@ export function useAppointmentHistory(): UseAppointmentHistoryReturn {
   const verify = useCallback(
     async (code: string): Promise<AppointmentHistoryFullResponse> => {
       if (!state.business) throw new Error("Business not loaded");
-      if (!state.phoneNumber)
-        throw new Error("Phone number is required");
+      if (!state.phoneNumber) throw new Error("Phone number is required");
       dispatch({ type: "HISTORY_VERIFICATION_STARTED" });
       try {
         const payload = await apiClient.getAppointmentHistory({
