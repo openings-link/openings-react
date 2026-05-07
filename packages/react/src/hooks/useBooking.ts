@@ -25,7 +25,7 @@ interface UseBookingReturn {
   registerCustomer: (input: {
     firstName: string;
     lastName: string;
-  }) => Promise<void>;
+  }) => Promise<{ customerId: string }>;
   /** Create the appointment. */
   book: (
     verificationCodeOverride?: string,
@@ -232,12 +232,7 @@ export function useBooking(): UseBookingReturn {
           state.selectedMemberOpenings.userId ??
           state.selectedMemberOpenings.teamMemberId ??
           "";
-        // The public /customers/booking endpoint creates the customer
-        // record but no longer returns its id (PII reduction). The
-        // appointment-create endpoint resolves the customer from
-        // phoneNumber + verified OTP at create time — no need to
-        // round-trip the id through the client.
-        await apiClient.createCustomer({
+        const customer = await apiClient.createCustomer({
           businessId: state.business.id,
           userId,
           firstName: input.firstName,
@@ -245,11 +240,13 @@ export function useBooking(): UseBookingReturn {
           phoneNumber: state.phoneNumber || undefined,
           email: state.email || undefined,
         });
+        dispatch({ type: "SET_CUSTOMER_ID", customerId: customer.customerId });
         dispatch({
           type: "SET_CUSTOMER_NAME",
           firstName: input.firstName,
           lastName: input.lastName,
         });
+        return { customerId: customer.customerId };
       } catch (err) {
         dispatch({
           type: "SET_ERROR",

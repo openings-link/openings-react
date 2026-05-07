@@ -37,7 +37,14 @@ interface VerifyCodeResult {
 }
 
 interface CreateCustomerResult {
-  ok: boolean;
+  customerId: string;
+  alreadyExists?: boolean;
+}
+
+interface CreateAppointmentResult {
+  appointmentId: string;
+  date?: string;
+  time?: string;
 }
 
 /* ─── Fetch helper ─── */
@@ -329,10 +336,14 @@ export function createApiClient(baseUrl: string): ApiClient {
       if (input.teamMemberId) body.teamMemberId = input.teamMemberId;
       if (input.verificationCode)
         body.verificationCode = input.verificationCode;
-      return api<BookingResult>(baseUrl, "/v1/appointments/create", {
+      return api<CreateAppointmentResult>(baseUrl, "/v1/appointments/create", {
         method: "POST",
         body: JSON.stringify(body),
-      });
+      }).then((result) => ({
+        appointmentId: result.appointmentId,
+        date: result.date ?? input.date,
+        time: result.time ?? input.time,
+      }));
     },
 
     createServiceRequest(input) {

@@ -119,6 +119,58 @@ describe("createApiClient", () => {
     });
   });
 
+  describe("createCustomer", () => {
+    it("returns the customer id from the booking customer endpoint", async () => {
+      globalThis.fetch = mockFetch({
+        ok: true,
+        data: { customerId: "cust_1", alreadyExists: true },
+      });
+
+      const client = createApiClient(BASE);
+      const result = await client.createCustomer({
+        businessId: "b1",
+        userId: "u1",
+        firstName: "Jane",
+        lastName: "Doe",
+        phoneNumber: "+15551234567",
+      });
+
+      expect(result).toEqual({ customerId: "cust_1", alreadyExists: true });
+    });
+  });
+
+  describe("createAppointment", () => {
+    it("fills date and time from the submitted booking when the API returns only an appointment id", async () => {
+      globalThis.fetch = mockFetch({
+        ok: true,
+        data: { appointmentId: "apt_1" },
+      });
+
+      const client = createApiClient(BASE);
+      const result = await client.createAppointment({
+        businessId: "b1",
+        userId: "u1",
+        scheduleId: "sch_1",
+        services: [{ id: "svc_1" }],
+        date: "2026-05-10",
+        time: "10:00",
+        phoneNumber: "+15551234567",
+      });
+
+      expect(result).toEqual({
+        appointmentId: "apt_1",
+        date: "2026-05-10",
+        time: "10:00",
+      });
+      const [url, init] = (fetch as ReturnType<typeof vi.fn>).mock.calls[0];
+      expect(url).toBe(`${BASE}/v1/appointments/create`);
+      expect(init.method).toBe("POST");
+      const body = JSON.parse(init.body);
+      expect(body.date).toBe("2026-05-10");
+      expect(body.time).toBe("10:00");
+    });
+  });
+
   describe("uploadImage", () => {
     it("posts base64 image data", async () => {
       const result = { url: "https://cdn.test/uploaded.jpg" };

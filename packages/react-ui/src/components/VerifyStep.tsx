@@ -79,8 +79,8 @@ export function VerifyStep({ labels }: Props) {
     setSubmitting(true);
     try {
       await verify(code);
-      await registerCustomer({ firstName, lastName });
-      await book();
+      const customer = await registerCustomer({ firstName, lastName });
+      await book(undefined, customer.customerId);
     } catch {
       // error is dispatched to state
     } finally {
