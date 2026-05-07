@@ -50,6 +50,12 @@ interface AppointmentHistoryResult {
   }[];
 }
 
+interface CreateAppointmentResult {
+  appointmentId: string;
+  date?: string;
+  time?: string;
+}
+
 /* ─── Fetch helper ─── */
 
 async function api<T>(
@@ -269,7 +275,7 @@ export function createApiClient(baseUrl: string): ApiClient {
     },
 
     createAppointment(input) {
-      return api<BookingResult>(baseUrl, "/v1/appointments/create", {
+      return api<CreateAppointmentResult>(baseUrl, "/v1/appointments/create", {
         method: "POST",
         body: JSON.stringify({
           salonId: input.businessId,
@@ -282,7 +288,11 @@ export function createApiClient(baseUrl: string): ApiClient {
           time: input.time,
           verificationCode: input.verificationCode,
         }),
-      });
+      }).then((result) => ({
+        appointmentId: result.appointmentId,
+        date: result.date ?? input.date,
+        time: result.time ?? input.time,
+      }));
     },
 
     createServiceRequest(input) {

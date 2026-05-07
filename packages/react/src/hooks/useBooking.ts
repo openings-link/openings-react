@@ -17,7 +17,7 @@ interface UseBookingReturn {
   registerCustomer: (input: {
     firstName: string;
     lastName: string;
-  }) => Promise<void>;
+  }) => Promise<{ customerId: string }>;
   /** Create the appointment. */
   book: (
     verificationCodeOverride?: string,
@@ -212,20 +212,21 @@ export function useBooking(): UseBookingReturn {
           state.selectedMemberOpenings.userId ??
           state.selectedMemberOpenings.teamMemberId ??
           "";
-        const result = await apiClient.createCustomer({
+        const customer = await apiClient.createCustomer({
           businessId: state.business.id,
           userId,
           firstName: input.firstName,
           lastName: input.lastName,
           phoneNumber: state.phoneNumber,
         });
-        dispatch({ type: "SET_CUSTOMER_ID", customerId: result.customerId });
+        dispatch({ type: "SET_CUSTOMER_ID", customerId: customer.customerId });
         dispatch({
           type: "SET_CUSTOMER_NAME",
           firstName: input.firstName,
           lastName: input.lastName,
         });
-        callbacks.onVerificationComplete?.(result.customerId);
+          callbacks.onVerificationComplete?.(customer.customerId);
+        return { customerId: customer.customerId };
       } catch (err) {
         dispatch({
           type: "SET_ERROR",
