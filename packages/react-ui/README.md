@@ -60,10 +60,32 @@ https://github.com/openings-link/openings-react/blob/main/docs/proxy-templates.m
 | `memberId`              | `string`                     | Pre-select a staff member (show their availability).   |
 | `theme`                 | `BookingTheme`               | Accent color, border radius, font, light/dark mode.    |
 | `labels`                | `Partial<BookingLabels>`     | Override any user-facing string for i18n.              |
+| `features`              | `BookingFeatures`            | Optional capabilities, such as rescheduling.           |
 | `apiClient`             | `ApiClient`                  | Custom API client for testing or mock data.            |
 | `on`                    | `OpeningsCallbacks`          | Event callbacks for booking lifecycle.                 |
 | `onConsultationRequest` | `(member, services) => void` | Custom handler for consultation services.              |
 | `className`             | `string`                     | CSS class for the root container.                      |
+
+## Optional Rescheduling
+
+Rescheduling is disabled by default. Enable it when you want returning customers
+with upcoming appointments to choose between booking a new appointment and
+rescheduling an existing one:
+
+```tsx
+<BookingWidget
+  business="your-business-handle"
+  features={{ rescheduling: true }}
+  on={{
+    onRescheduleComplete: (result) => {
+      console.log("Rescheduled!", result);
+    },
+  }}
+/>
+```
+
+The widget only shows appointment details after the customer verifies with the
+reschedule lookup code returned by the Openings API.
 
 ## Theme
 

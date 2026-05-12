@@ -4,6 +4,7 @@ import {
   useServiceRequest,
   type OpeningsCallbacks,
   type BookingEntry,
+  type BookingFeatures,
   type ApiClient,
   type MemberOpenings,
   type SelectedService,
@@ -31,6 +32,8 @@ interface BookingWidgetProps {
   theme?: BookingTheme;
   /** Label overrides for i18n. */
   labels?: Partial<BookingLabels>;
+  /** Optional widget capabilities. Disabled by default. */
+  features?: BookingFeatures;
   /** Custom API client (for testing or mock data). */
   apiClient?: ApiClient;
   /** Event callbacks. */
@@ -57,6 +60,7 @@ export function BookingWidget({
   memberId,
   theme,
   labels: labelOverrides,
+  features,
   apiClient,
   on,
   onConsultationRequest,
@@ -75,6 +79,7 @@ export function BookingWidget({
       apiBase={apiBase}
       apiClient={apiClient}
       entry={entry}
+      features={features}
       on={on}
     >
       <style>{`
@@ -99,6 +104,7 @@ export function BookingWidget({
       >
         <BookingWidgetInner
           labels={labels}
+          features={features}
           onConsultationRequest={onConsultationRequest}
           onStaffInfoClick={onStaffInfoClick}
         />
@@ -111,8 +117,10 @@ function BookingWidgetInner({
   labels,
   onConsultationRequest,
   onStaffInfoClick,
+  features,
 }: {
   labels: BookingLabels;
+  features?: BookingFeatures;
   onConsultationRequest?: (
     member: MemberOpenings,
     services: SelectedService[],
@@ -202,9 +210,29 @@ function BookingWidgetInner({
       (willLandOnOpenings && !hasEnteredOpeningsRef.current)) &&
     (flow.services.length === 0 || !openingsFetchedOnceRef.current);
 
+  if (flow.error && (flow.businessLoading || !flow.entryResolved)) {
+    return (
+      <div
+        role="alert"
+        style={{
+          padding: "10px 14px",
+          background: "#fef2f2",
+          color: "#dc2626",
+          borderRadius: "var(--openings-radius, 8px)",
+          fontSize: 14,
+        }}
+      >
+        {flow.error}
+      </div>
+    );
+  }
+
   if (flow.businessLoading || !flow.entryResolved || openingsStepNotReady) {
     return (
-      <div style={{ textAlign: "center", padding: "48px 0" }}>
+      <div
+        aria-label="Loading booking widget"
+        style={{ textAlign: "center", padding: "48px 0" }}
+      >
         <div
           style={{
             width: 28,
@@ -231,7 +259,7 @@ function BookingWidgetInner({
       />
     ),
     review: <ReviewStep labels={labels} />,
-    verify: <VerifyStep labels={labels} />,
+    verify: <VerifyStep labels={labels} features={features} />,
     confirm: (
       <ConfirmStep
         labels={labels}

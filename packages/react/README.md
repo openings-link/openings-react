@@ -93,6 +93,11 @@ https://github.com/openings-link/openings-react/blob/main/docs/proxy-templates.m
 | `useBookingFlow()`    | All-in-one orchestrator                       |
 | `useServiceRequest()` | Service request form state + submission       |
 
+`useBooking()` also exposes reschedule helpers for custom UIs:
+`fetchVerifiedAppointmentHistory(code)` loads upcoming appointment details only
+after verification, and `reschedule({ appointmentId, verificationCode })` moves
+the selected verified appointment to the currently selected slot.
+
 ## Utilities
 
 ```tsx

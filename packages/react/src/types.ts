@@ -122,6 +122,10 @@ export interface BookingResult {
   time: string;
 }
 
+export interface BookingFeatures {
+  rescheduling?: boolean;
+}
+
 /* ─── Service request result ─── */
 
 export interface ServiceRequestResult {
@@ -186,6 +190,8 @@ export interface OpeningsConfig {
   timezone?: string;
   /** Entry point — controls where the booking flow starts. */
   entry?: BookingEntry;
+  /** Optional widget capabilities. Disabled by default for backwards compatibility. */
+  features?: BookingFeatures;
 }
 
 export interface ConsultationRequest {
@@ -195,6 +201,7 @@ export interface ConsultationRequest {
 
 export interface OpeningsCallbacks {
   onBookingComplete?: (result: BookingResult) => void;
+  onRescheduleComplete?: (result: BookingResult) => void;
   onServiceRequestComplete?: (result: ServiceRequestResult) => void;
   onStepChange?: (from: Step, to: Step) => void;
   onError?: (error: BookingError) => void;
