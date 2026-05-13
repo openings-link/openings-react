@@ -61,9 +61,14 @@ https://github.com/openings-link/openings-react/blob/main/docs/proxy-templates.m
 | `theme`                 | `BookingTheme`               | Accent color, border radius, font, light/dark mode.    |
 | `labels`                | `Partial<BookingLabels>`     | Override any user-facing string for i18n.              |
 | `apiClient`             | `ApiClient`                  | Custom API client for testing or mock data.            |
+| `appointmentMetadata`   | `Record<string, string>`     | Extra metadata stored on created appointments.         |
 | `on`                    | `OpeningsCallbacks`          | Event callbacks for booking lifecycle.                 |
 | `onConsultationRequest` | `(member, services) => void` | Custom handler for consultation services.              |
 | `className`             | `string`                     | CSS class for the root container.                      |
+
+Appointments created through the widget automatically include
+`source: "openings-react"` metadata. Use `appointmentMetadata` for additional
+string fields such as an integration or campaign id.
 
 ## Theme
 

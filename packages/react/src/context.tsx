@@ -66,6 +66,8 @@ interface OpeningsProviderProps {
   timezone?: string;
   /** Entry point — pre-select schedule and/or member. */
   entry?: BookingEntry;
+  /** Extra metadata stored on appointments created by this provider. */
+  appointmentMetadata?: OpeningsConfig["appointmentMetadata"];
   /** Custom API client (for testing or custom auth). */
   apiClient?: ApiClient;
   /** Event callbacks. */
@@ -80,6 +82,7 @@ export function OpeningsProvider({
   currency = "USD",
   timezone = "auto",
   entry,
+  appointmentMetadata,
   apiClient: customApiClient,
   on = {},
   children,
@@ -107,8 +110,9 @@ export function OpeningsProvider({
       currency,
       timezone,
       entry: entry ?? { scheduleId: undefined, memberId: undefined },
+      appointmentMetadata,
     }),
-    [business, apiBase, locale, currency, timezone, entry],
+    [business, apiBase, locale, currency, timezone, entry, appointmentMetadata],
   );
 
   // Keep entry in sync if the prop changes after mount (e.g. host swaps the

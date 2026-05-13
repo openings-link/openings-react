@@ -117,6 +117,21 @@ const client = createApiClient("https://api.openings.link");
 </OpeningsProvider>;
 ```
 
+## Appointment Metadata
+
+Appointments created through the provider automatically include
+`source: "openings-react"` metadata. Add your own string metadata for
+correlation with `appointmentMetadata`:
+
+```tsx
+<OpeningsProvider
+  business="my-biz"
+  appointmentMetadata={{ integration: "marketing-site" }}
+>
+  <BookingFlow />
+</OpeningsProvider>
+```
+
 ## License
 
 MIT

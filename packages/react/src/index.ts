@@ -25,6 +25,7 @@ export type {
   NextAvailabilityItem,
   ScheduleInfo,
   BookingResult,
+  AppointmentMetadata,
   ServiceRequestResult,
   BookingError,
   BookingErrorCode,

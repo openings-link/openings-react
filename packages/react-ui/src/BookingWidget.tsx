@@ -7,6 +7,7 @@ import {
   type ApiClient,
   type MemberOpenings,
   type SelectedService,
+  type AppointmentMetadata,
 } from "@openings-link/react";
 import { useEffect, useRef, type ReactNode } from "react";
 import { themeToCssVars, type BookingTheme } from "./theme";
@@ -27,6 +28,8 @@ interface BookingWidgetProps {
   scheduleId?: string;
   /** Pre-select a specific team member. */
   memberId?: string;
+  /** Extra metadata stored on appointments created by this widget. */
+  appointmentMetadata?: AppointmentMetadata;
   /** Theme / styling options. */
   theme?: BookingTheme;
   /** Label overrides for i18n. */
@@ -55,6 +58,7 @@ export function BookingWidget({
   apiBase,
   scheduleId,
   memberId,
+  appointmentMetadata,
   theme,
   labels: labelOverrides,
   apiClient,
@@ -75,6 +79,7 @@ export function BookingWidget({
       apiBase={apiBase}
       apiClient={apiClient}
       entry={entry}
+      appointmentMetadata={appointmentMetadata}
       on={on}
     >
       <style>{`

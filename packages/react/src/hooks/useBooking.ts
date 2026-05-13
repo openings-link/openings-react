@@ -40,7 +40,7 @@ interface UseBookingReturn {
 }
 
 export function useBooking(): UseBookingReturn {
-  const { state, dispatch, apiClient, callbacks } = useBookingContext();
+  const { state, dispatch, config, apiClient, callbacks } = useBookingContext();
 
   const setPhoneNumber = useCallback(
     (phoneNumber: string) => dispatch({ type: "SET_PHONE", phoneNumber }),
@@ -225,7 +225,7 @@ export function useBooking(): UseBookingReturn {
           firstName: input.firstName,
           lastName: input.lastName,
         });
-          callbacks.onVerificationComplete?.(customer.customerId);
+        callbacks.onVerificationComplete?.(customer.customerId);
         return { customerId: customer.customerId };
       } catch (err) {
         dispatch({
@@ -290,6 +290,10 @@ export function useBooking(): UseBookingReturn {
           date: state.selectedDate,
           time: state.selectedTime,
           verificationCode: effectiveVerificationCode,
+          metadata: {
+            ...config.appointmentMetadata,
+            source: "openings-react",
+          },
         });
         dispatch({ type: "SET_RESULT", result });
         callbacks.onBookingComplete?.(result);
@@ -341,7 +345,14 @@ export function useBooking(): UseBookingReturn {
         dispatch({ type: "SET_LOADING", loading: false });
       }
     },
-    [state, apiClient, dispatch, callbacks, sendVerification],
+    [
+      state,
+      config.appointmentMetadata,
+      apiClient,
+      dispatch,
+      callbacks,
+      sendVerification,
+    ],
   );
 
   const reset = useCallback(() => {

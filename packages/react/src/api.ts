@@ -15,6 +15,7 @@ import type {
   BookingResult,
   ServiceRequestResult,
   NextAvailabilityItem,
+  AppointmentMetadata,
 } from "./types";
 
 /* ─── Internal response types ─── */
@@ -146,6 +147,7 @@ export interface ApiClient {
     date: string;
     time: string;
     verificationCode?: string;
+    metadata?: AppointmentMetadata;
   }): Promise<BookingResult>;
   createServiceRequest(input: {
     businessId: string;
@@ -287,6 +289,7 @@ export function createApiClient(baseUrl: string): ApiClient {
           date: input.date,
           time: input.time,
           verificationCode: input.verificationCode,
+          metadata: input.metadata,
         }),
       }).then((result) => ({
         appointmentId: result.appointmentId,

@@ -151,10 +151,14 @@ describe("createApiClient", () => {
         businessId: "b1",
         userId: "u1",
         scheduleId: "sch_1",
+        customerId: "cust_1",
         services: [{ id: "svc_1" }],
         date: "2026-05-10",
         time: "10:00",
-        phoneNumber: "+15551234567",
+        metadata: {
+          source: "openings-react",
+          embedId: "checkout-page",
+        },
       });
 
       expect(result).toEqual({
@@ -168,6 +172,10 @@ describe("createApiClient", () => {
       const body = JSON.parse(init.body);
       expect(body.date).toBe("2026-05-10");
       expect(body.time).toBe("10:00");
+      expect(body.metadata).toEqual({
+        source: "openings-react",
+        embedId: "checkout-page",
+      });
     });
   });
 

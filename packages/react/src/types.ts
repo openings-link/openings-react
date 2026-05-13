@@ -122,6 +122,10 @@ export interface BookingResult {
   time: string;
 }
 
+/* ─── Appointment metadata ─── */
+
+export type AppointmentMetadata = Record<string, string>;
+
 /* ─── Service request result ─── */
 
 export interface ServiceRequestResult {
@@ -186,6 +190,8 @@ export interface OpeningsConfig {
   timezone?: string;
   /** Entry point — controls where the booking flow starts. */
   entry?: BookingEntry;
+  /** Extra metadata stored on appointments created by this provider. */
+  appointmentMetadata?: AppointmentMetadata;
 }
 
 export interface ConsultationRequest {
