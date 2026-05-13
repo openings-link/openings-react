@@ -10,6 +10,7 @@ import type {
   OpeningsConfig,
   OpeningsCallbacks,
   BookingEntry,
+  BookingFeatures,
   Step,
 } from "./types";
 import {
@@ -66,6 +67,10 @@ interface OpeningsProviderProps {
   timezone?: string;
   /** Entry point — pre-select schedule and/or member. */
   entry?: BookingEntry;
+  /** Extra metadata stored on appointments created by this provider. */
+  appointmentMetadata?: OpeningsConfig["appointmentMetadata"];
+  /** Optional capabilities. */
+  features?: BookingFeatures;
   /** Custom API client (for testing or custom auth). */
   apiClient?: ApiClient;
   /** Event callbacks. */
@@ -80,6 +85,8 @@ export function OpeningsProvider({
   currency = "USD",
   timezone = "auto",
   entry,
+  appointmentMetadata,
+  features,
   apiClient: customApiClient,
   on = {},
   children,
@@ -107,8 +114,19 @@ export function OpeningsProvider({
       currency,
       timezone,
       entry: entry ?? { scheduleId: undefined, memberId: undefined },
+      appointmentMetadata,
+      features: features ?? {},
     }),
-    [business, apiBase, locale, currency, timezone, entry],
+    [
+      business,
+      apiBase,
+      locale,
+      currency,
+      timezone,
+      entry,
+      appointmentMetadata,
+      features,
+    ],
   );
 
   // Keep entry in sync if the prop changes after mount (e.g. host swaps the

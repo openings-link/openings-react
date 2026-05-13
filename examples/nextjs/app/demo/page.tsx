@@ -7,18 +7,27 @@ import { StaffInfoModal } from "../StaffInfoModal";
 
 const MULTI_CODE = `<BookingWidget
   business="demo"
+  appointmentMetadata={{ demo: "multi-location" }}
   onStaffInfoClick={setInfoMember}
 />`;
 
 const SINGLE_CODE = `<BookingWidget
   business="demo"
   scheduleId="cmnt2ks0t000204l4zflogbpl"
+  appointmentMetadata={{ demo: "single-location" }}
   onStaffInfoClick={setInfoMember}
 />`;
 
 const STAFF_CODE = `<BookingWidget
   business="demo"
   memberId="cmnt27m4p000104l4486n4nqo"
+  appointmentMetadata={{ demo: "staff-booking" }}
+/>`;
+
+const RESCHEDULE_CODE = `<BookingWidget
+  business="demo"
+  appointmentMetadata={{ demo: "rescheduling" }}
+  features={{ rescheduling: true }}
 />`;
 
 const demos = [
@@ -28,7 +37,7 @@ const demos = [
     description:
       "2 locations in NYC. Customer picks a location first, then sees staff and services.",
     accent: "#8B5CF6",
-    props: {},
+    props: { appointmentMetadata: { demo: "multi-location" } },
     code: MULTI_CODE,
   },
   {
@@ -37,7 +46,10 @@ const demos = [
     description:
       "Pre-selects East Village — skips the location picker and goes straight to booking.",
     accent: "#059669",
-    props: { scheduleId: "cmnt2ks0t000204l4zflogbpl" },
+    props: {
+      scheduleId: "cmnt2ks0t000204l4zflogbpl",
+      appointmentMetadata: { demo: "single-location" },
+    },
     code: SINGLE_CODE,
   },
   {
@@ -46,8 +58,20 @@ const demos = [
     description:
       "John's booking page — shows only his services and availability.",
     accent: "#dc2626",
-    props: { memberId: "cmnt27m4p000104l4486n4nqo" },
+    props: {
+      memberId: "cmnt27m4p000104l4486n4nqo",
+      appointmentMetadata: { demo: "staff-booking" },
+    },
     code: STAFF_CODE,
+  },
+  {
+    id: "reschedule",
+    title: "Reschedule",
+    description:
+      "Live rescheduling flow for returning customers with upcoming appointments.",
+    accent: "#2563eb",
+    props: { appointmentMetadata: { demo: "rescheduling" } },
+    code: RESCHEDULE_CODE,
   },
 ];
 
@@ -55,6 +79,12 @@ export default function DemoPage() {
   const [activeTab, setActiveTab] = useState("multi");
   const [infoMember, setInfoMember] = useState<MemberOpenings | null>(null);
   const activeDemo = demos.find((d) => d.id === activeTab) ?? demos[0];
+  const activeProps = activeDemo.props as {
+    scheduleId?: string;
+    memberId?: string;
+    appointmentMetadata?: Record<string, string>;
+  };
+  const isRescheduleDemo = activeDemo.id === "reschedule";
 
   return (
     <div>
@@ -132,14 +162,20 @@ export default function DemoPage() {
           key={activeDemo.id}
           business="demo"
           apiBase="/api/proxy"
+          scheduleId={activeProps.scheduleId}
+          memberId={activeProps.memberId}
+          appointmentMetadata={activeProps.appointmentMetadata}
+          features={isRescheduleDemo ? { rescheduling: true } : undefined}
           theme={{ accent: activeDemo.accent, radius: 10 }}
-          {...activeDemo.props}
           onStaffInfoClick={
             activeDemo.id === "staff" ? undefined : setInfoMember
           }
           on={{
             onBookingComplete: (result) => {
               console.log("Booked!", result);
+            },
+            onRescheduleComplete: (result) => {
+              console.log("Rescheduled!", result);
             },
           }}
         />

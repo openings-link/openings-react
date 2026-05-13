@@ -13,7 +13,10 @@ export function useBusiness(): UseBusinessReturn {
   const [loading, setLoading] = useState(!state.business);
 
   useEffect(() => {
-    if (state.business) return;
+    if (state.business) {
+      setLoading(false);
+      return;
+    }
 
     let cancelled = false;
     setLoading(true);

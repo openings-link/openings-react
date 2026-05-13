@@ -22,6 +22,7 @@ function MyBookingPage() {
     <>
       <BookingWidget
         business="demo"
+        appointmentMetadata={{ demo: "multi-location" }}
         theme={{ accent: "#8B5CF6", radius: 10 }}
         onStaffInfoClick={setInfoMember}
         on={{
@@ -66,6 +67,7 @@ export default function MultiLocationPage() {
         <BookingWidget
           business="demo"
           apiClient={multiLocationClient}
+          appointmentMetadata={{ demo: "multi-location" }}
           theme={{ accent: "#8B5CF6", radius: 10 }}
           onStaffInfoClick={setInfoMember}
           on={{

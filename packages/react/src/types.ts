@@ -122,6 +122,14 @@ export interface BookingResult {
   time: string;
 }
 
+/* ─── Appointment metadata ─── */
+
+export type AppointmentMetadata = Record<string, string>;
+
+export interface BookingFeatures {
+  rescheduling?: boolean;
+}
+
 /* ─── Service request result ─── */
 
 export interface ServiceRequestResult {
@@ -186,6 +194,10 @@ export interface OpeningsConfig {
   timezone?: string;
   /** Entry point — controls where the booking flow starts. */
   entry?: BookingEntry;
+  /** Extra metadata stored on appointments created by this provider. */
+  appointmentMetadata?: AppointmentMetadata;
+  /** Optional widget capabilities. Disabled by default for backwards compatibility. */
+  features?: BookingFeatures;
 }
 
 export interface ConsultationRequest {
@@ -195,6 +207,7 @@ export interface ConsultationRequest {
 
 export interface OpeningsCallbacks {
   onBookingComplete?: (result: BookingResult) => void;
+  onRescheduleComplete?: (result: BookingResult) => void;
   onServiceRequestComplete?: (result: ServiceRequestResult) => void;
   onStepChange?: (from: Step, to: Step) => void;
   onError?: (error: BookingError) => void;
