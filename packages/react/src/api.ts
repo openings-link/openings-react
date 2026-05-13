@@ -68,7 +68,7 @@ export interface SafeAppointmentHistoryResult {
   needCreditCard: boolean;
   hasUpcomingAppointments: boolean;
   verificationPurpose?: string;
-  upcomingAppointments: [];
+  upcomingAppointments: AppointmentHistoryItem[];
 }
 
 export interface AppointmentHistoryResult {
