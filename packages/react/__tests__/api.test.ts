@@ -139,6 +139,118 @@ describe("createApiClient", () => {
     });
   });
 
+  describe("fetchAppointmentHistory", () => {
+    it("returns only safe lookup signals from the public history endpoint", async () => {
+      const history = {
+        customerId: "cust_1",
+        needCreditCard: false,
+        hasUpcomingAppointments: true,
+        verificationPurpose: "rescheduleLookup:b1:cust_1",
+        upcomingAppointments: [],
+      };
+      globalThis.fetch = mockFetch({ ok: true, data: history });
+
+      const client = createApiClient(BASE);
+      const result = await client.fetchAppointmentHistory("+15551234567", "b1");
+
+      expect(result).toEqual(history);
+      expect(fetch).toHaveBeenCalledWith(
+        `${BASE}/v1/appointments/history/%2B15551234567?salonId=b1`,
+        expect.objectContaining({ headers: {} }),
+      );
+    });
+
+    it("supports privacy-safe lookup by email", async () => {
+      const history = {
+        customerId: "cust_1",
+        needCreditCard: false,
+        hasUpcomingAppointments: true,
+        verificationPurpose: "rescheduleLookup:b1:cust_1",
+        upcomingAppointments: [],
+      };
+      globalThis.fetch = mockFetch({ ok: true, data: history });
+
+      const client = createApiClient(BASE);
+      const result = await client.fetchAppointmentHistoryByEmail(
+        "jane@test.com",
+        "b1",
+      );
+
+      expect(result).toEqual(history);
+      expect(fetch).toHaveBeenCalledWith(
+        `${BASE}/v1/appointments/history/by-email?email=jane%40test.com&salonId=b1`,
+        expect.objectContaining({ headers: {} }),
+      );
+    });
+
+    it("fetches appointment details only through verified history", async () => {
+      const history = {
+        customerId: "cust_1",
+        needCreditCard: false,
+        hasUpcomingAppointments: true,
+        upcomingAppointments: [
+          {
+            appointmentId: "apt_1",
+            date: "2026-05-10",
+            time: "10:00",
+            formattedDatetime: "Sun, May 10 at 10:00 AM",
+          },
+        ],
+      };
+      globalThis.fetch = mockFetch({ ok: true, data: history });
+
+      const client = createApiClient(BASE);
+      const result = await client.fetchVerifiedAppointmentHistory({
+        businessId: "b1",
+        phoneNumber: "+15551234567",
+        code: "123456",
+      });
+
+      expect(result).toEqual(history);
+      const [url, init] = (fetch as ReturnType<typeof vi.fn>).mock.calls[0];
+      expect(url).toBe(`${BASE}/v1/appointments/history/verified`);
+      expect(init.method).toBe("POST");
+      expect(JSON.parse(init.body)).toEqual({
+        salonId: "b1",
+        phoneNumber: "+15551234567",
+        code: "123456",
+      });
+    });
+  });
+
+  describe("verification", () => {
+    it("defaults to the booking purpose", async () => {
+      globalThis.fetch = mockFetch({ ok: true, data: { status: "sent" } });
+
+      const client = createApiClient(BASE);
+      await client.sendVerification({
+        phoneNumber: "+15551234567",
+        businessId: "b1",
+      });
+
+      const [, init] = (fetch as ReturnType<typeof vi.fn>).mock.calls[0];
+      expect(JSON.parse(init.body)).toMatchObject({ purpose: "booking:b1" });
+    });
+
+    it("allows callers to use an API-provided verification purpose", async () => {
+      globalThis.fetch = mockFetch({ ok: true, data: { verified: true } });
+
+      const client = createApiClient(BASE);
+      await client.verifyCode({
+        phoneNumber: "+15551234567",
+        businessId: "b1",
+        code: "123456",
+        purpose: "rescheduleLookup:b1:cust_1",
+      });
+
+      const [, init] = (fetch as ReturnType<typeof vi.fn>).mock.calls[0];
+      expect(JSON.parse(init.body)).toMatchObject({
+        code: "123456",
+        purpose: "rescheduleLookup:b1:cust_1",
+      });
+    });
+  });
+
   describe("createAppointment", () => {
     it("fills date and time from the submitted booking when the API returns only an appointment id", async () => {
       globalThis.fetch = mockFetch({
@@ -175,6 +287,42 @@ describe("createApiClient", () => {
       expect(body.metadata).toEqual({
         source: "openings-react",
         embedId: "checkout-page",
+      });
+    });
+  });
+
+  describe("rescheduleAppointment", () => {
+    it("passes the verified code to the public reschedule endpoint", async () => {
+      globalThis.fetch = mockFetch({
+        ok: true,
+        data: { appointmentId: "apt_2" },
+      });
+
+      const client = createApiClient(BASE);
+      const result = await client.rescheduleAppointment({
+        businessId: "b1",
+        userId: "u1",
+        scheduleId: "sch_1",
+        rescheduleAppointmentId: "apt_1",
+        services: [{ id: "svc_1" }],
+        date: "2026-05-11",
+        time: "11:00",
+        verificationCode: "123456",
+        phoneNumber: "+15551234567",
+      });
+
+      expect(result).toEqual({
+        appointmentId: "apt_2",
+        date: "2026-05-11",
+        time: "11:00",
+      });
+      const [url, init] = (fetch as ReturnType<typeof vi.fn>).mock.calls[0];
+      expect(url).toBe(`${BASE}/v1/appointments/reschedule`);
+      expect(init.method).toBe("POST");
+      expect(JSON.parse(init.body)).toMatchObject({
+        rescheduleAppointmentId: "apt_1",
+        verificationCode: "123456",
+        phoneNumber: "+15551234567",
       });
     });
   });

@@ -40,15 +40,43 @@ interface CreateCustomerResult {
   alreadyExists?: boolean;
 }
 
-interface AppointmentHistoryResult {
+export interface AppointmentHistoryService {
+  id: string;
+  title?: string;
+  duration?: number;
+  price?: number;
+  referenceId?: string;
+  optionId?: string;
+}
+
+export interface AppointmentHistoryItem {
+  id?: string;
+  appointmentId: string;
+  date: string;
+  time: string;
+  datetime?: string;
+  formattedDatetime: string;
+  price?: number;
+  duration?: number;
+  isCanceled?: boolean;
+  isRescheduled?: boolean;
+  services?: AppointmentHistoryService[];
+}
+
+export interface SafeAppointmentHistoryResult {
   customerId?: string;
   needCreditCard: boolean;
-  upcomingAppointments: {
-    id: string;
-    appointmentId: string;
-    date: string;
-    time: string;
-  }[];
+  hasUpcomingAppointments: boolean;
+  verificationPurpose?: string;
+  upcomingAppointments: [];
+}
+
+export interface AppointmentHistoryResult {
+  customerId?: string;
+  needCreditCard: boolean;
+  hasUpcomingAppointments?: boolean;
+  verificationPurpose?: string;
+  upcomingAppointments: AppointmentHistoryItem[];
 }
 
 interface CreateAppointmentResult {
@@ -56,6 +84,8 @@ interface CreateAppointmentResult {
   date?: string;
   time?: string;
 }
+
+type RescheduleAppointmentResult = CreateAppointmentResult;
 
 /* ─── Fetch helper ─── */
 
@@ -118,17 +148,31 @@ export interface ApiClient {
   fetchAppointmentHistory(
     phoneNumber: string,
     businessId: string,
-  ): Promise<AppointmentHistoryResult>;
+  ): Promise<SafeAppointmentHistoryResult>;
+  fetchAppointmentHistoryByEmail(
+    email: string,
+    businessId: string,
+  ): Promise<SafeAppointmentHistoryResult>;
+  fetchVerifiedAppointmentHistory(input: {
+    businessId: string;
+    phoneNumber?: string;
+    email?: string;
+    code: string;
+  }): Promise<AppointmentHistoryResult>;
   sendVerification(opts: {
     phoneNumber?: string;
     email?: string;
     businessId: string;
+    /** Defaults to booking:{businessId}. Use the API-provided purpose for non-booking flows. */
+    purpose?: string;
   }): Promise<SendVerificationResult>;
   verifyCode(opts: {
     phoneNumber?: string;
     email?: string;
     code: string;
     businessId: string;
+    /** Defaults to booking:{businessId}. Use the API-provided purpose for non-booking flows. */
+    purpose?: string;
   }): Promise<VerifyCodeResult>;
   createCustomer(input: {
     businessId: string;
@@ -148,6 +192,18 @@ export interface ApiClient {
     time: string;
     verificationCode?: string;
     metadata?: AppointmentMetadata;
+  }): Promise<BookingResult>;
+  rescheduleAppointment(input: {
+    businessId: string;
+    userId: string;
+    scheduleId: string;
+    rescheduleAppointmentId: string;
+    services: { id: string; optionId?: string }[];
+    date: string;
+    time: string;
+    verificationCode: string;
+    phoneNumber?: string;
+    email?: string;
   }): Promise<BookingResult>;
   createServiceRequest(input: {
     businessId: string;
@@ -232,15 +288,40 @@ export function createApiClient(baseUrl: string): ApiClient {
 
     fetchAppointmentHistory(phoneNumber, businessId) {
       const qs = new URLSearchParams({ salonId: businessId });
-      return api<AppointmentHistoryResult>(
+      return api<SafeAppointmentHistoryResult>(
         baseUrl,
         `/v1/appointments/history/${encodeURIComponent(phoneNumber)}?${qs.toString()}`,
       );
     },
 
+    fetchAppointmentHistoryByEmail(email, businessId) {
+      const qs = new URLSearchParams({ email, salonId: businessId });
+      return api<SafeAppointmentHistoryResult>(
+        baseUrl,
+        `/v1/appointments/history/by-email?${qs.toString()}`,
+      );
+    },
+
+    fetchVerifiedAppointmentHistory(input) {
+      const body: Record<string, string> = {
+        salonId: input.businessId,
+        code: input.code,
+      };
+      if (input.phoneNumber) body.phoneNumber = input.phoneNumber;
+      if (input.email) body.email = input.email;
+      return api<AppointmentHistoryResult>(
+        baseUrl,
+        "/v1/appointments/history/verified",
+        {
+          method: "POST",
+          body: JSON.stringify(body),
+        },
+      );
+    },
+
     sendVerification(opts) {
       const body: Record<string, string> = {
-        purpose: `booking:${opts.businessId}`,
+        purpose: opts.purpose ?? `booking:${opts.businessId}`,
       };
       if (opts.phoneNumber) body.phoneNumber = opts.phoneNumber;
       if (opts.email) body.email = opts.email;
@@ -253,7 +334,7 @@ export function createApiClient(baseUrl: string): ApiClient {
     verifyCode(opts) {
       const body: Record<string, string> = {
         code: opts.code,
-        purpose: `booking:${opts.businessId}`,
+        purpose: opts.purpose ?? `booking:${opts.businessId}`,
       };
       if (opts.phoneNumber) body.phoneNumber = opts.phoneNumber;
       if (opts.email) body.email = opts.email;
@@ -292,6 +373,32 @@ export function createApiClient(baseUrl: string): ApiClient {
           metadata: input.metadata,
         }),
       }).then((result) => ({
+        appointmentId: result.appointmentId,
+        date: result.date ?? input.date,
+        time: result.time ?? input.time,
+      }));
+    },
+
+    rescheduleAppointment(input) {
+      return api<RescheduleAppointmentResult>(
+        baseUrl,
+        "/v1/appointments/reschedule",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            salonId: input.businessId,
+            userId: input.userId,
+            scheduleId: input.scheduleId,
+            rescheduleAppointmentId: input.rescheduleAppointmentId,
+            services: input.services,
+            date: input.date,
+            time: input.time,
+            verificationCode: input.verificationCode,
+            phoneNumber: input.phoneNumber,
+            email: input.email,
+          }),
+        },
+      ).then((result) => ({
         appointmentId: result.appointmentId,
         date: result.date ?? input.date,
         time: result.time ?? input.time,

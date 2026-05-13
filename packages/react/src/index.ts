@@ -31,10 +31,18 @@ export type {
   BookingErrorCode,
   Step,
   OpeningsConfig,
+  BookingFeatures,
   OpeningsCallbacks,
   BookingEntry,
   ConsultationRequest,
 } from "./types";
 
 // ── API client (for advanced usage / testing) ──
-export { createApiClient, type ApiClient } from "./api";
+export {
+  createApiClient,
+  type ApiClient,
+  type AppointmentHistoryItem,
+  type AppointmentHistoryResult,
+  type AppointmentHistoryService,
+  type SafeAppointmentHistoryResult,
+} from "./api";

@@ -21,6 +21,11 @@ const STAFF_CODE = `<BookingWidget
   memberId="cmnt27m4p000104l4486n4nqo"
 />`;
 
+const RESCHEDULE_CODE = `<BookingWidget
+  business="demo"
+  features={{ rescheduling: true }}
+/>`;
+
 const demos = [
   {
     id: "multi",
@@ -49,12 +54,26 @@ const demos = [
     props: { memberId: "cmnt27m4p000104l4486n4nqo" },
     code: STAFF_CODE,
   },
+  {
+    id: "reschedule",
+    title: "Reschedule",
+    description:
+      "Live rescheduling flow for returning customers with upcoming appointments.",
+    accent: "#2563eb",
+    props: {},
+    code: RESCHEDULE_CODE,
+  },
 ];
 
 export default function DemoPage() {
   const [activeTab, setActiveTab] = useState("multi");
   const [infoMember, setInfoMember] = useState<MemberOpenings | null>(null);
   const activeDemo = demos.find((d) => d.id === activeTab) ?? demos[0];
+  const activeProps = activeDemo.props as {
+    scheduleId?: string;
+    memberId?: string;
+  };
+  const isRescheduleDemo = activeDemo.id === "reschedule";
 
   return (
     <div>
@@ -132,14 +151,19 @@ export default function DemoPage() {
           key={activeDemo.id}
           business="demo"
           apiBase="/api/proxy"
+          scheduleId={activeProps.scheduleId}
+          memberId={activeProps.memberId}
+          features={isRescheduleDemo ? { rescheduling: true } : undefined}
           theme={{ accent: activeDemo.accent, radius: 10 }}
-          {...activeDemo.props}
           onStaffInfoClick={
             activeDemo.id === "staff" ? undefined : setInfoMember
           }
           on={{
             onBookingComplete: (result) => {
               console.log("Booked!", result);
+            },
+            onRescheduleComplete: (result) => {
+              console.log("Rescheduled!", result);
             },
           }}
         />

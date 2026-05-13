@@ -137,6 +137,23 @@ const bookingStubs = {
     return {
       customerId: undefined,
       needCreditCard: false,
+      hasUpcomingAppointments: false,
+      upcomingAppointments: [],
+    };
+  },
+  async fetchAppointmentHistoryByEmail() {
+    return {
+      customerId: undefined,
+      needCreditCard: false,
+      hasUpcomingAppointments: false,
+      upcomingAppointments: [],
+    };
+  },
+  async fetchVerifiedAppointmentHistory() {
+    return {
+      customerId: "cust_demo_001",
+      needCreditCard: false,
+      hasUpcomingAppointments: false,
       upcomingAppointments: [],
     };
   },
@@ -155,6 +172,13 @@ const bookingStubs = {
   async createAppointment(_input: { date: string; time: string }) {
     return {
       appointmentId: "apt_demo_" + Date.now(),
+      date: _input.date,
+      time: _input.time,
+    };
+  },
+  async rescheduleAppointment(_input: { date: string; time: string }) {
+    return {
+      appointmentId: "apt_demo_rescheduled_" + Date.now(),
       date: _input.date,
       time: _input.time,
     };

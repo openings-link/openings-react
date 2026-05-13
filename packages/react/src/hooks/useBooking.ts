@@ -1,18 +1,30 @@
 import { useCallback } from "react";
 import { useBookingContext } from "../context";
 import type { BookingResult, BookingError } from "../types";
+import type { AppointmentHistoryResult } from "../api";
 
 type BookingStatus = "idle" | "verifying" | "booking" | "complete" | "error";
 
+type LookupCustomerResult =
+  | { phase: "new-customer" }
+  | {
+      phase: "returning";
+      customerId: string;
+      hasUpcomingAppointments: boolean;
+      verificationPurpose?: string;
+    };
+
 interface UseBookingReturn {
   /** Look up phone/email to determine new vs returning customer. Sends verification for new customers. */
-  lookupCustomer: () => Promise<
-    { phase: "new-customer" } | { phase: "returning"; customerId: string }
-  >;
+  lookupCustomer: () => Promise<LookupCustomerResult>;
   /** Send verification code to phone/email. */
-  sendVerification: () => Promise<void>;
+  sendVerification: (opts?: { purpose?: string }) => Promise<void>;
   /** Submit the verification code. */
   verify: (code: string) => Promise<void>;
+  /** Fetch appointment details after reschedule lookup verification. */
+  fetchVerifiedAppointmentHistory: (
+    code: string,
+  ) => Promise<AppointmentHistoryResult>;
   /** Create a customer (for new customers). */
   registerCustomer: (input: {
     firstName: string;
@@ -23,6 +35,11 @@ interface UseBookingReturn {
     verificationCodeOverride?: string,
     customerIdOverride?: string,
   ) => Promise<BookingResult>;
+  /** Reschedule a verified appointment into the selected slot. */
+  reschedule: (input: {
+    appointmentId: string;
+    verificationCode: string;
+  }) => Promise<BookingResult>;
   /** Reset the booking flow. */
   reset: () => void;
   status: BookingStatus;
@@ -52,97 +69,116 @@ export function useBooking(): UseBookingReturn {
     [dispatch],
   );
 
-  const sendVerification = useCallback(async () => {
-    if (!state.business) throw new Error("Business not loaded");
-    const phoneNumber = state.phoneNumber.trim();
-    const email = state.email.trim();
-    if (!phoneNumber && !email) {
-      const message = "Enter a phone number or email to continue";
-      dispatch({ type: "SET_ERROR", error: message });
-      throw new Error(message);
-    }
-    dispatch({ type: "SET_LOADING", loading: true });
-    try {
-      const result = await apiClient.sendVerification({
-        phoneNumber: phoneNumber || undefined,
-        email: email || undefined,
-        businessId: state.business.id,
-      });
-      dispatch({ type: "SET_VERIFICATION_SENT", sent: true });
-      callbacks.onVerificationSent?.(
-        result.method === "email" ? "EMAIL" : "SMS",
-      );
-    } catch (err) {
-      const error: BookingError = {
-        code: "VERIFICATION_FAILED",
-        message:
-          err instanceof Error ? err.message : "Failed to send verification",
-        step: "verify",
-        retryable: true,
-      };
-      dispatch({ type: "SET_ERROR", error: error.message });
-      callbacks.onError?.(error);
-      throw err;
-    } finally {
-      dispatch({ type: "SET_LOADING", loading: false });
-    }
-  }, [
-    state.business,
-    state.phoneNumber,
-    state.email,
-    apiClient,
-    dispatch,
-    callbacks,
-  ]);
-
-  const lookupCustomer = useCallback(async (): Promise<
-    { phase: "new-customer" } | { phase: "returning"; customerId: string }
-  > => {
-    if (!state.business) throw new Error("Business not loaded");
-    dispatch({ type: "SET_LOADING", loading: true });
-    dispatch({ type: "SET_ERROR", error: null });
-    try {
-      if (state.phoneNumber) {
-        const history = await apiClient.fetchAppointmentHistory(
-          state.phoneNumber,
-          state.business.id,
-        );
-        if (history.customerId) {
-          dispatch({
-            type: "SET_CUSTOMER_ID",
-            customerId: history.customerId,
-          });
-          dispatch({ type: "SET_VERIFY_PHASE", phase: "returning" });
-          callbacks.onVerificationComplete?.(history.customerId);
-          return { phase: "returning", customerId: history.customerId };
-        }
+  const sendVerification = useCallback(
+    async (opts?: { purpose?: string }) => {
+      if (!state.business) throw new Error("Business not loaded");
+      const phoneNumber = state.phoneNumber.trim();
+      const email = state.email.trim();
+      if (!phoneNumber && !email) {
+        const message = "Enter a phone number or email to continue";
+        dispatch({ type: "SET_ERROR", error: message });
+        throw new Error(message);
       }
-      // New customer — send verification code
-      await sendVerification();
-      dispatch({ type: "SET_VERIFY_PHASE", phase: "new-customer" });
-      return { phase: "new-customer" };
-    } catch (err) {
-      const error: BookingError = {
-        code: "VERIFICATION_FAILED",
-        message:
-          err instanceof Error ? err.message : "Failed to look up customer",
-        step: "verify",
-        retryable: true,
-      };
-      dispatch({ type: "SET_ERROR", error: error.message });
-      callbacks.onError?.(error);
-      throw err;
-    } finally {
-      dispatch({ type: "SET_LOADING", loading: false });
-    }
-  }, [
-    state.business,
-    state.phoneNumber,
-    sendVerification,
-    apiClient,
-    dispatch,
-    callbacks,
-  ]);
+      dispatch({ type: "SET_LOADING", loading: true });
+      try {
+        const result = await apiClient.sendVerification({
+          phoneNumber: phoneNumber || undefined,
+          email: email || undefined,
+          businessId: state.business.id,
+          purpose: opts?.purpose,
+        });
+        dispatch({ type: "SET_VERIFICATION_SENT", sent: true });
+        callbacks.onVerificationSent?.(
+          result.method === "email" ? "EMAIL" : "SMS",
+        );
+      } catch (err) {
+        const error: BookingError = {
+          code: "VERIFICATION_FAILED",
+          message:
+            err instanceof Error ? err.message : "Failed to send verification",
+          step: "verify",
+          retryable: true,
+        };
+        dispatch({ type: "SET_ERROR", error: error.message });
+        callbacks.onError?.(error);
+        throw err;
+      } finally {
+        dispatch({ type: "SET_LOADING", loading: false });
+      }
+    },
+    [
+      state.business,
+      state.phoneNumber,
+      state.email,
+      apiClient,
+      dispatch,
+      callbacks,
+    ],
+  );
+
+  const lookupCustomer =
+    useCallback(async (): Promise<LookupCustomerResult> => {
+      if (!state.business) throw new Error("Business not loaded");
+      dispatch({ type: "SET_LOADING", loading: true });
+      dispatch({ type: "SET_ERROR", error: null });
+      try {
+        const phoneNumber = state.phoneNumber.trim();
+        const email = state.email.trim();
+        const isEmailVerification =
+          state.business.verificationMethod === "EMAIL";
+
+        if (phoneNumber || email) {
+          const history = isEmailVerification
+            ? await apiClient.fetchAppointmentHistoryByEmail(
+                email,
+                state.business.id,
+              )
+            : await apiClient.fetchAppointmentHistory(
+                phoneNumber,
+                state.business.id,
+              );
+          if (history.customerId) {
+            dispatch({
+              type: "SET_CUSTOMER_ID",
+              customerId: history.customerId,
+            });
+            dispatch({ type: "SET_VERIFY_PHASE", phase: "returning" });
+            callbacks.onVerificationComplete?.(history.customerId);
+            return {
+              phase: "returning",
+              customerId: history.customerId,
+              hasUpcomingAppointments: history.hasUpcomingAppointments,
+              verificationPurpose: history.verificationPurpose,
+            };
+          }
+        }
+        // New customer — send verification code
+        await sendVerification();
+        dispatch({ type: "SET_VERIFY_PHASE", phase: "new-customer" });
+        return { phase: "new-customer" };
+      } catch (err) {
+        const error: BookingError = {
+          code: "VERIFICATION_FAILED",
+          message:
+            err instanceof Error ? err.message : "Failed to look up customer",
+          step: "verify",
+          retryable: true,
+        };
+        dispatch({ type: "SET_ERROR", error: error.message });
+        callbacks.onError?.(error);
+        throw err;
+      } finally {
+        dispatch({ type: "SET_LOADING", loading: false });
+      }
+    }, [
+      state.business,
+      state.phoneNumber,
+      state.email,
+      sendVerification,
+      apiClient,
+      dispatch,
+      callbacks,
+    ]);
 
   const verify = useCallback(
     async (code: string) => {
@@ -181,6 +217,57 @@ export function useBooking(): UseBookingReturn {
         const error: BookingError = {
           code: "VERIFICATION_FAILED",
           message: err instanceof Error ? err.message : "Verification failed",
+          step: "verify",
+          retryable: true,
+        };
+        dispatch({ type: "SET_ERROR", error: error.message });
+        callbacks.onError?.(error);
+        throw err;
+      } finally {
+        dispatch({ type: "SET_LOADING", loading: false });
+      }
+    },
+    [
+      state.business,
+      state.phoneNumber,
+      state.email,
+      apiClient,
+      dispatch,
+      callbacks,
+    ],
+  );
+
+  const fetchVerifiedAppointmentHistory = useCallback(
+    async (code: string): Promise<AppointmentHistoryResult> => {
+      if (!state.business) throw new Error("Business not loaded");
+      const phoneNumber = state.phoneNumber.trim();
+      const email = state.email.trim();
+      if (!phoneNumber && !email) {
+        throw new Error("Enter a phone number or email to continue");
+      }
+
+      dispatch({ type: "SET_LOADING", loading: true });
+      dispatch({ type: "SET_ERROR", error: null });
+      try {
+        const history = await apiClient.fetchVerifiedAppointmentHistory({
+          businessId: state.business.id,
+          phoneNumber: phoneNumber || undefined,
+          email: email || undefined,
+          code,
+        });
+        if (history.customerId) {
+          dispatch({ type: "SET_CUSTOMER_ID", customerId: history.customerId });
+          callbacks.onVerificationComplete?.(history.customerId);
+        }
+        dispatch({ type: "SET_VERIFICATION_CODE", code });
+        return history;
+      } catch (err) {
+        const error: BookingError = {
+          code: "VERIFICATION_FAILED",
+          message:
+            err instanceof Error
+              ? err.message
+              : "Failed to verify appointment history",
           step: "verify",
           retryable: true,
         };
@@ -355,6 +442,71 @@ export function useBooking(): UseBookingReturn {
     ],
   );
 
+  const reschedule = useCallback(
+    async (input: {
+      appointmentId: string;
+      verificationCode: string;
+    }): Promise<BookingResult> => {
+      if (
+        !state.business ||
+        !state.selectedScheduleId ||
+        !state.selectedMemberOpenings ||
+        !state.selectedTime ||
+        !state.selectedDate
+      ) {
+        throw new Error("Incomplete booking state");
+      }
+
+      const appointmentScheduleId =
+        state.selectedMemberOpenings.schedule?.id ?? state.selectedScheduleId;
+
+      dispatch({ type: "SET_LOADING", loading: true });
+      try {
+        const userId =
+          state.selectedMemberOpenings.userId ??
+          state.selectedMemberOpenings.teamMemberId ??
+          "";
+        const result = await apiClient.rescheduleAppointment({
+          businessId: state.business.id,
+          userId,
+          scheduleId: appointmentScheduleId,
+          rescheduleAppointmentId: input.appointmentId,
+          services: state.selectedServices.map((s) => ({
+            id: s.id,
+            ...(s.option?.id ? { optionId: s.option.id } : {}),
+          })),
+          date: state.selectedDate,
+          time: state.selectedTime,
+          verificationCode: input.verificationCode,
+          phoneNumber: state.phoneNumber || undefined,
+          email: state.email || undefined,
+        });
+        dispatch({ type: "SET_RESULT", result });
+        callbacks.onRescheduleComplete?.(result);
+        return result;
+      } catch (err) {
+        const message =
+          err instanceof Error
+            ? err.message
+            : "Failed to reschedule appointment";
+        const error: BookingError = {
+          code: message.toLowerCase().includes("slot")
+            ? "SLOT_TAKEN"
+            : "NETWORK",
+          message,
+          step: "review",
+          retryable: true,
+        };
+        dispatch({ type: "SET_ERROR", error: error.message });
+        callbacks.onError?.(error);
+        throw err;
+      } finally {
+        dispatch({ type: "SET_LOADING", loading: false });
+      }
+    },
+    [state, apiClient, dispatch, callbacks],
+  );
+
   const reset = useCallback(() => {
     dispatch({ type: "RESET" });
   }, [dispatch]);
@@ -369,8 +521,10 @@ export function useBooking(): UseBookingReturn {
     lookupCustomer,
     sendVerification,
     verify,
+    fetchVerifiedAppointmentHistory,
     registerCustomer,
     book,
+    reschedule,
     reset,
     status,
     result: state.result,

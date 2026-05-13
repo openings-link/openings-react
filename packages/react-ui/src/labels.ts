@@ -38,6 +38,15 @@ export interface BookingLabels {
   noOpeningsKeepLooking: string;
   searchingNextAvailability: string;
   nextAvailabilityNoneFound: string;
+  rescheduleChoiceTitle: string;
+  rescheduleChoicePrompt: string;
+  rescheduleNewAppointment: string;
+  rescheduleExistingAppointment: string;
+  rescheduleVerifyTitle: string;
+  rescheduleVerifyPrompt: string;
+  rescheduleListTitle: string;
+  rescheduleListEmpty: string;
+  rescheduleConfirmButton: string;
 }
 
 export const defaultLabels: BookingLabels = {
@@ -83,4 +92,13 @@ export const defaultLabels: BookingLabels = {
     "No openings found for this date. Check availability on other days.",
   searchingNextAvailability: "Searching for next available days…",
   nextAvailabilityNoneFound: "No upcoming availability found.",
+  rescheduleChoiceTitle: "Welcome back",
+  rescheduleChoicePrompt: "You have an upcoming appointment.",
+  rescheduleNewAppointment: "Make a new appointment",
+  rescheduleExistingAppointment: "Reschedule an existing appointment",
+  rescheduleVerifyTitle: "Verify to reschedule",
+  rescheduleVerifyPrompt: "Enter the code we sent you.",
+  rescheduleListTitle: "Choose an appointment",
+  rescheduleListEmpty: "No upcoming appointments were found.",
+  rescheduleConfirmButton: "Reschedule appointment",
 };
