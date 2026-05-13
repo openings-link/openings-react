@@ -666,6 +666,49 @@ export function OpeningsStep({
     [onConsultationRequest, selectedServices],
   );
 
+  const handleNextAvailabilitySelect = useCallback(
+    (date: string, time: string, item: NextAvailabilityItem) => {
+      clearNextAvailability();
+      selectDate(date);
+
+      if (!isMemberMode || !selectedMemberId) return;
+
+      const member = members.find((m) => m.id === selectedMemberId);
+      const selectedMemberOpenings: MemberOpenings = {
+        userId: member?.userId ?? null,
+        teamMemberId: member?.teamMemberId ?? null,
+        username: member?.username ?? member?.id ?? selectedMemberId,
+        name: member?.name ?? "",
+        photo: member?.photo ?? undefined,
+        schedule: item.schedule,
+        openings: item.openings,
+        openingLabels: item.openingLabels,
+        dayStatus: item.dayStatus,
+        services: selectedServices.map((service) => ({
+          id: service.id,
+          title: service.title,
+          duration: service.option?.duration ?? service.duration,
+          price: service.option?.price ?? service.price,
+          hasConsultation: service.hasConsultation,
+          option: service.option,
+        })),
+      };
+
+      selectSlot(selectedMemberOpenings, time);
+      onSlotSelected?.();
+    },
+    [
+      clearNextAvailability,
+      isMemberMode,
+      members,
+      onSlotSelected,
+      selectDate,
+      selectedMemberId,
+      selectedServices,
+      selectSlot,
+    ],
+  );
+
   // Check if any selected service requires consultation
   const isConsultation = selectedServices.some((sel) => {
     const svc = services.find((s) => s.id === sel.id);
@@ -1534,13 +1577,7 @@ export function OpeningsStep({
               labels={labels}
               isMemberMode={isMemberMode}
               schedules={schedules}
-              onSelect={(date, scheduleId) => {
-                clearNextAvailability();
-                if (!isMemberMode && scheduleId) {
-                  // No-op: user is already on this schedule
-                }
-                selectDate(date);
-              }}
+              onSelect={handleNextAvailabilitySelect}
               onSearch={() => findNextAvailability()}
               loading={nextAvailabilityLoading}
               error={nextAvailabilityError}
@@ -1567,7 +1604,7 @@ function NextAvailabilityPanel({
   labels: BookingLabels;
   isMemberMode: boolean;
   schedules: Schedule[];
-  onSelect: (date: string, scheduleId?: string) => void;
+  onSelect: (date: string, time: string, item: NextAvailabilityItem) => void;
   onSearch: () => void;
   loading: boolean;
   error: string | null;
@@ -1748,7 +1785,7 @@ function NextAvailabilityPanel({
                       key={time}
                       type="button"
                       className="openings-slot"
-                      onClick={() => onSelect(date, item.schedule.id)}
+                      onClick={() => onSelect(date, time, item)}
                       style={{
                         padding: "8px 4px",
                         border: "1px solid var(--openings-border, #e5e5e5)",
