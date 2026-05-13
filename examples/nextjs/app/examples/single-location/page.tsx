@@ -20,6 +20,7 @@ function MyBookingPage() {
     <>
       <BookingWidget
         business="demo"
+        appointmentMetadata={{ demo: "single-location" }}
         theme={{ accent: "#059669" }}
         onStaffInfoClick={setInfoMember}
         on={{
@@ -65,6 +66,7 @@ export default function SingleLocationPage() {
         <BookingWidget
           business="demo"
           apiClient={singleLocationClient}
+          appointmentMetadata={{ demo: "single-location" }}
           theme={{ accent: "#059669" }}
           onStaffInfoClick={setInfoMember}
           on={{

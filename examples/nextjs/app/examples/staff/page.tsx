@@ -10,6 +10,7 @@ const CODE = `import { BookingWidget } from "@openings-link/react-ui";
 <BookingWidget
   business="demo"
   memberId="mem_john"
+  appointmentMetadata={{ demo: "staff-booking" }}
   theme={{ accent: "#dc2626" }}
   on={{
     onBookingComplete: (result) => {
@@ -42,6 +43,7 @@ export default function StaffPage() {
           business="demo"
           apiClient={multiLocationClient}
           memberId="mem_john"
+          appointmentMetadata={{ demo: "staff-booking" }}
           theme={{ accent: "#dc2626" }}
           on={{
             onBookingComplete: (result) => {
