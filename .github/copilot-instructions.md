@@ -64,6 +64,26 @@ pnpm typecheck    # type check all packages
 pnpm dev          # watch mode
 ```
 
+## Branch, PR, and Release Flow
+
+- Use PRs into `main` for code changes, including release version bumps.
+- Repository merge mode is squash-only. After a squash merge, original branch
+  commits will not be ancestors of `main`; this is expected.
+- Treat local `main` as a clean mirror of `origin/main`. After merging a PR,
+  preserve any local-only work on a branch before syncing local `main` to
+  `origin/main`.
+- It is normal to use `git branch -D <branch>` when deleting local branches whose
+  changes were squash-merged; `git branch -d` may reject them because ancestry is
+  not preserved.
+- Merging and publishing are separate. Merging to `main` must not publish npm
+  packages by itself.
+- Publish only by pushing package tags after the matching version bump is already
+  merged to `main` and checks are green:
+  - `@openings-link/react@x.y.z`
+  - `@openings-link/react-ui@x.y.z`
+- Tags must point at the release commit on `main`; pushing those tags triggers
+  the GitHub Actions `Release` workflow, which publishes to npm.
+
 ## Booking Flow Steps
 
 `schedule → openings → review → verify → confirm`
