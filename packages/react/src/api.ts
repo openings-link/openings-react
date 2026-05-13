@@ -204,6 +204,7 @@ export interface ApiClient {
     verificationCode: string;
     phoneNumber?: string;
     email?: string;
+    metadata?: AppointmentMetadata;
   }): Promise<BookingResult>;
   createServiceRequest(input: {
     businessId: string;
@@ -396,6 +397,7 @@ export function createApiClient(baseUrl: string): ApiClient {
             verificationCode: input.verificationCode,
             phoneNumber: input.phoneNumber,
             email: input.email,
+            metadata: input.metadata,
           }),
         },
       ).then((result) => ({

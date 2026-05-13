@@ -309,6 +309,10 @@ describe("createApiClient", () => {
         time: "11:00",
         verificationCode: "123456",
         phoneNumber: "+15551234567",
+        metadata: {
+          source: "openings-react",
+          embedId: "checkout-page",
+        },
       });
 
       expect(result).toEqual({
@@ -323,6 +327,10 @@ describe("createApiClient", () => {
         rescheduleAppointmentId: "apt_1",
         verificationCode: "123456",
         phoneNumber: "+15551234567",
+        metadata: {
+          source: "openings-react",
+          embedId: "checkout-page",
+        },
       });
     });
   });

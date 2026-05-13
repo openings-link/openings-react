@@ -480,6 +480,10 @@ export function useBooking(): UseBookingReturn {
           verificationCode: input.verificationCode,
           phoneNumber: state.phoneNumber || undefined,
           email: state.email || undefined,
+          metadata: {
+            ...config.appointmentMetadata,
+            source: "openings-react",
+          },
         });
         dispatch({ type: "SET_RESULT", result });
         callbacks.onRescheduleComplete?.(result);
@@ -504,7 +508,7 @@ export function useBooking(): UseBookingReturn {
         dispatch({ type: "SET_LOADING", loading: false });
       }
     },
-    [state, apiClient, dispatch, callbacks],
+    [state, config.appointmentMetadata, apiClient, dispatch, callbacks],
   );
 
   const reset = useCallback(() => {
