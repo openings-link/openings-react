@@ -563,6 +563,144 @@ function CombineServicesPanel({
   );
 }
 
+function OptionsPanel({
+  service,
+  labels,
+  onSubmit,
+  onClose,
+}: {
+  service: SelectedService;
+  labels: BookingLabels;
+  onSubmit: (option: SelectedService["option"]) => void;
+  onClose: () => void;
+}) {
+  const [selectedOptionId, setSelectedOptionId] = useState(
+    service.option?.id ?? "",
+  );
+
+  const allOptions = [
+    {
+      id: "",
+      title: labels.regularServiceOption,
+      price: service.price,
+      duration: service.duration,
+    },
+    ...(service.options ?? []),
+  ];
+
+  const handleSubmit = () => {
+    const option = service.options?.find((o) => o.id === selectedOptionId);
+    onSubmit(selectedOptionId ? option : undefined);
+    onClose();
+  };
+
+  return (
+    <div
+      style={{
+        border: "1px solid var(--openings-border, #e5e5e5)",
+        borderRadius: "var(--openings-radius, 8px)",
+        overflow: "hidden",
+        marginTop: 10,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "10px 14px",
+          borderBottom: "1px solid var(--openings-border, #e5e5e5)",
+        }}
+      >
+        <span style={{ fontWeight: 600, fontSize: 15 }}>
+          {labels.selectServiceOption}
+        </span>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close option picker"
+          style={{
+            border: "none",
+            background: "none",
+            cursor: "pointer",
+            fontSize: 18,
+            color: "var(--openings-muted, #666)",
+            padding: "2px 6px",
+            fontFamily: "var(--openings-font, inherit)",
+          }}
+        >
+          ×
+        </button>
+      </div>
+      <div style={{ padding: "6px 14px" }}>
+        {allOptions.map((option, index) => {
+          const isSelected = selectedOptionId === option.id;
+          const isLast = index === allOptions.length - 1;
+          return (
+            <label
+              key={option.id || "regular"}
+              style={{
+                display: "flex",
+                alignItems: "flex-start",
+                gap: 10,
+                padding: "9px 0",
+                borderBottom: isLast
+                  ? "none"
+                  : "1px solid var(--openings-border, #f0f0f0)",
+                cursor: "pointer",
+              }}
+            >
+              <input
+                type="radio"
+                name={`service-option-${service.id}`}
+                checked={isSelected}
+                onChange={() => setSelectedOptionId(option.id)}
+                style={{ marginTop: 3 }}
+              />
+              <span style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                <span style={{ fontSize: 14, fontWeight: 500 }}>
+                  {option.title}
+                </span>
+                <span
+                  style={{ fontSize: 12, color: "var(--openings-muted, #666)" }}
+                >
+                  {formatPrice(option.price)} · {formatDuration(option.duration)}
+                </span>
+              </span>
+            </label>
+          );
+        })}
+      </div>
+      <div
+        style={{
+          padding: "10px 14px",
+          borderTop: "1px solid var(--openings-border, #e5e5e5)",
+          display: "flex",
+          justifyContent: "flex-end",
+        }}
+      >
+        <button
+          type="button"
+          onClick={handleSubmit}
+          style={{
+            padding: "8px 16px",
+            border: "none",
+            borderRadius: 6,
+            background: "var(--openings-accent, #000)",
+            color: "#fff",
+            cursor: "pointer",
+            fontSize: 13,
+            fontWeight: 600,
+            fontFamily: "var(--openings-font, inherit)",
+          }}
+        >
+          {labels.applyServiceOption}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function OpeningsStep({
   labels,
   onSlotSelected,
@@ -571,6 +709,7 @@ export function OpeningsStep({
 }: Props) {
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [combineOpen, setCombineOpen] = useState(false);
+  const [optionsIndex, setOptionsIndex] = useState<number | undefined>();
   const {
     services,
     selectedServices,
@@ -618,11 +757,13 @@ export function OpeningsStep({
   const handleServiceChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const value = e.target.value;
     if (value === CUSTOM_VALUE) {
+      setOptionsIndex(undefined);
       setCombineOpen(true);
       return;
     }
     const svc = services.find((s) => s.id === value);
     if (svc) {
+      setOptionsIndex(undefined);
       setServices([
         {
           id: svc.id,
@@ -638,14 +779,24 @@ export function OpeningsStep({
 
   const handleCombineSubmit = (svcs: SelectedService[]) => {
     setCombineOpen(false);
+    setOptionsIndex(undefined);
     if (svcs.length > 0) {
       setServices(svcs);
     }
   };
 
+  const handleOptionSubmit = (option: SelectedService["option"]) => {
+    if (optionsIndex === undefined) return;
+    const updated = [...selectedServices];
+    updated[optionsIndex] = { ...updated[optionsIndex], option };
+    setOptionsIndex(undefined);
+    setServices(updated);
+  };
+
   const clearToSingle = () => {
     const first = services[0];
     if (first) {
+      setOptionsIndex(undefined);
       setServices([
         {
           id: first.id,
@@ -732,6 +883,19 @@ export function OpeningsStep({
   const membersWithoutSlots = memberOpenings.filter(
     (m) => m.openings.length === 0,
   );
+
+  const formatServiceSelectLabel = (service: (typeof services)[number]) => {
+    const selectedOption =
+      service.id === primaryService?.id ? primaryService.option : undefined;
+    if (selectedOption) {
+      return isMemberMode
+        ? `${service.title} · ${selectedOption.title} – ${formatPrice(selectedOption.price)} · ${formatDuration(selectedOption.duration)}`
+        : `${service.title} · ${selectedOption.title}`;
+    }
+    return isMemberMode
+      ? `${service.title} – ${formatPrice(service.price)} · ${formatDuration(service.duration)}`
+      : service.title;
+  };
 
   return (
     <div>
@@ -855,6 +1019,10 @@ export function OpeningsStep({
         <div style={{ marginBottom: 16 }}>
           <div
             style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 12,
               fontSize: 13,
               fontWeight: 600,
               color: "var(--openings-muted, #666)",
@@ -863,7 +1031,33 @@ export function OpeningsStep({
               letterSpacing: 0.5,
             }}
           >
-            {labels.selectService}
+            <span>{labels.selectService}</span>
+            {isSingle &&
+              !combineOpen &&
+              primaryService?.options &&
+              primaryService.options.length > 0 &&
+              primaryService.option && (
+                <button
+                  type="button"
+                  onClick={() => setOptionsIndex(0)}
+                  style={{
+                    border: "none",
+                    background: "transparent",
+                    color: "var(--openings-accent, #000)",
+                    cursor: "pointer",
+                    fontFamily: "var(--openings-font, inherit)",
+                    fontSize: 12,
+                    fontWeight: 600,
+                    lineHeight: "18px",
+                    padding: 0,
+                    textTransform: "none",
+                    letterSpacing: 0,
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {labels.changeServiceOption}
+                </button>
+              )}
           </div>
 
           {/* Single service: dropdown (+ combine option) */}
@@ -873,12 +1067,14 @@ export function OpeningsStep({
               onChange={handleServiceChange}
               style={{
                 width: "100%",
+                height: 42,
                 padding: "10px 36px 10px 12px",
                 border: "1px solid var(--openings-border, #e5e5e5)",
                 borderRadius: "var(--openings-radius, 8px)",
                 background: `var(--openings-bg, #fff) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='7'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23666' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 12px center`,
                 color: "var(--openings-text, #111)",
                 fontSize: 15,
+                lineHeight: "20px",
                 fontFamily: "var(--openings-font, inherit)",
                 cursor: "pointer",
                 appearance: "none",
@@ -887,9 +1083,7 @@ export function OpeningsStep({
             >
               {services.map((s) => (
                 <option key={s.id} value={s.id}>
-                  {isMemberMode
-                    ? `${s.title} – ${formatPrice(s.price)} · ${formatDuration(s.duration)}`
-                    : s.title}
+                  {formatServiceSelectLabel(s)}
                 </option>
               ))}
               {services.length > 1 && (
@@ -897,6 +1091,38 @@ export function OpeningsStep({
               )}
             </select>
           )}
+
+          {isSingle &&
+            !combineOpen &&
+            primaryService?.options &&
+            primaryService.options.length > 0 &&
+            !primaryService.option && (
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "flex-end",
+                  marginTop: 8,
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => setOptionsIndex(0)}
+                  style={{
+                    border: "none",
+                    background: "transparent",
+                    color: "var(--openings-accent, #000)",
+                    cursor: "pointer",
+                    fontFamily: "var(--openings-font, inherit)",
+                    fontSize: 13,
+                    fontWeight: 600,
+                    lineHeight: "18px",
+                    padding: 0,
+                  }}
+                >
+                  {labels.showServiceOptions(primaryService.options.length)}
+                </button>
+              </div>
+            )}
 
           {/* Multiple services selected: show list with edit/clear */}
           {isMulti && !combineOpen && (
@@ -961,18 +1187,38 @@ export function OpeningsStep({
                     }}
                   >
                     <span>{svc.title}</span>
-                    {isMemberMode && (
-                      <span style={{ color: "var(--openings-muted, #666)" }}>
-                        {svc.option
+                    <span
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        color: "var(--openings-muted, #666)",
+                      }}
+                    >
+                      {isMemberMode &&
+                        (svc.option
                           ? `${svc.option.title} · ${formatPrice(svc.option.price)}`
-                          : formatPrice(svc.price)}
-                      </span>
-                    )}
-                    {!isMemberMode && svc.option && (
-                      <span style={{ color: "var(--openings-muted, #666)" }}>
-                        {svc.option.title}
-                      </span>
-                    )}
+                          : formatPrice(svc.price))}
+                      {!isMemberMode && svc.option && svc.option.title}
+                      {svc.options && svc.options.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setOptionsIndex(idx)}
+                          style={{
+                            border: "none",
+                            background: "none",
+                            cursor: "pointer",
+                            fontSize: 13,
+                            color: "var(--openings-accent, #000)",
+                            fontWeight: 500,
+                            fontFamily: "var(--openings-font, inherit)",
+                            padding: 0,
+                          }}
+                        >
+                          options
+                        </button>
+                      )}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -1005,6 +1251,15 @@ export function OpeningsStep({
               onClose={() => setCombineOpen(false)}
               labels={labels}
               showPricing={isMemberMode}
+            />
+          )}
+
+          {optionsIndex !== undefined && selectedServices[optionsIndex] && (
+            <OptionsPanel
+              service={selectedServices[optionsIndex]}
+              labels={labels}
+              onSubmit={handleOptionSubmit}
+              onClose={() => setOptionsIndex(undefined)}
             />
           )}
         </div>
