@@ -10,6 +10,7 @@ import {
 } from "@openings-link/react";
 import type { BookingLabels } from "../labels";
 import { PhoneInput } from "./PhoneInput";
+import { BookingSummary } from "./ReviewStep";
 
 interface Props {
   labels: BookingLabels;
@@ -40,6 +41,10 @@ export function VerifyStep({ labels, features }: Props) {
     reschedule,
     error,
     verificationSent,
+    selectedServices,
+    selectedDate,
+    selectedTime,
+    selectedMember,
   } = useBooking();
 
   const [code, setCode] = useState("");
@@ -241,6 +246,9 @@ export function VerifyStep({ labels, features }: Props) {
 
   const displayedError = rescheduleError ?? error;
 
+  const showInlineSummary =
+    rescheduleMode === "none" && selectedServices.length > 0;
+
   if (rescheduleMode === "choice") {
     return (
       <div>
@@ -425,6 +433,16 @@ export function VerifyStep({ labels, features }: Props) {
 
   return (
     <div>
+      {showInlineSummary && (
+        <BookingSummary
+          selectedServices={selectedServices}
+          selectedDate={selectedDate}
+          selectedTime={selectedTime}
+          selectedMember={selectedMember}
+          compact
+        />
+      )}
+
       {/* Phase 1: Enter phone/email only */}
       {verifyPhase === "phone" && (
         <div>

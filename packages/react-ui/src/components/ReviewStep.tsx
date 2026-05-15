@@ -3,6 +3,8 @@ import {
   formatPrice,
   formatDuration,
   formatTime,
+  type MemberOpenings,
+  type SelectedService,
 } from "@openings-link/react";
 import type { BookingLabels } from "../labels";
 
@@ -19,16 +21,19 @@ function formatDateShort(dateStr: string): string {
   });
 }
 
-export function ReviewStep({ labels }: Props) {
-  const {
-    selectedServices,
-    selectedDate,
-    selectedTime,
-    selectedMember,
-    goToVerify,
-    loading,
-  } = useBookingFlow();
-
+export function BookingSummary({
+  selectedServices,
+  selectedDate,
+  selectedTime,
+  selectedMember,
+  compact = false,
+}: {
+  selectedServices: SelectedService[];
+  selectedDate: string | null;
+  selectedTime: string | null;
+  selectedMember: MemberOpenings | null;
+  compact?: boolean;
+}) {
   const totalPrice = selectedServices.reduce(
     (sum, s) => sum + (s.option?.price ?? s.price),
     0,
@@ -54,7 +59,7 @@ export function ReviewStep({ labels }: Props) {
           border: "1px solid var(--openings-border, #e5e5e5)",
           borderRadius: "var(--openings-radius, 8px)",
           padding: "4px 16px",
-          marginBottom: 20,
+          marginBottom: compact ? 16 : 20,
         }}
       >
         {/* Services */}
@@ -124,6 +129,28 @@ export function ReviewStep({ labels }: Props) {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+export function ReviewStep({ labels }: Props) {
+  const {
+    selectedServices,
+    selectedDate,
+    selectedTime,
+    selectedMember,
+    goToVerify,
+    loading,
+  } = useBookingFlow();
+
+  return (
+    <div>
+      <BookingSummary
+        selectedServices={selectedServices}
+        selectedDate={selectedDate}
+        selectedTime={selectedTime}
+        selectedMember={selectedMember}
+      />
 
       <button
         type="button"

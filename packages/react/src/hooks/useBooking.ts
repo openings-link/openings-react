@@ -1,6 +1,11 @@
 import { useCallback } from "react";
 import { useBookingContext } from "../context";
-import type { BookingResult, BookingError } from "../types";
+import type {
+  BookingResult,
+  BookingError,
+  MemberOpenings,
+  SelectedService,
+} from "../types";
 import type { AppointmentHistoryResult } from "../api";
 
 type BookingStatus = "idle" | "verifying" | "booking" | "complete" | "error";
@@ -45,6 +50,12 @@ interface UseBookingReturn {
   status: BookingStatus;
   result: BookingResult | null;
   error: string | null;
+
+  /* Selected appointment summary */
+  selectedServices: SelectedService[];
+  selectedDate: string | null;
+  selectedTime: string | null;
+  selectedMember: MemberOpenings | null;
 
   /* Verification state */
   phoneNumber: string;
@@ -533,6 +544,10 @@ export function useBooking(): UseBookingReturn {
     status,
     result: state.result,
     error: state.error,
+    selectedServices: state.selectedServices,
+    selectedDate: state.selectedDate,
+    selectedTime: state.selectedTime,
+    selectedMember: state.selectedMemberOpenings,
     phoneNumber: state.phoneNumber,
     setPhoneNumber,
     email: state.email,
