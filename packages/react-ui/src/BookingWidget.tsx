@@ -20,6 +20,8 @@ import { VerifyStep } from "./components/VerifyStep";
 import { ConfirmStep } from "./components/ConfirmStep";
 import { ServiceRequestStep } from "./components/ServiceRequestStep";
 
+export type CompletionMode = "inline" | "external";
+
 interface BookingWidgetProps {
   /** Business handle (slug). Required. */
   business: string;
@@ -37,6 +39,8 @@ interface BookingWidgetProps {
   labels?: Partial<BookingLabels>;
   /** Optional widget capabilities. Disabled by default. */
   features?: BookingFeatures;
+  /** Controls whether the widget shows its built-in confirmation scene. */
+  completionMode?: CompletionMode;
   /** Custom API client (for testing or mock data). */
   apiClient?: ApiClient;
   /** Event callbacks. */
@@ -65,6 +69,7 @@ export function BookingWidget({
   theme,
   labels: labelOverrides,
   features,
+  completionMode = "inline",
   apiClient,
   on,
   onConsultationRequest,
@@ -110,6 +115,7 @@ export function BookingWidget({
         <BookingWidgetInner
           labels={labels}
           features={features}
+          completionMode={completionMode}
           onConsultationRequest={onConsultationRequest}
           onStaffInfoClick={onStaffInfoClick}
         />
@@ -123,9 +129,11 @@ function BookingWidgetInner({
   onConsultationRequest,
   onStaffInfoClick,
   features,
+  completionMode,
 }: {
   labels: BookingLabels;
   features?: BookingFeatures;
+  completionMode: CompletionMode;
   onConsultationRequest?: (
     member: MemberOpenings,
     services: SelectedService[],
@@ -249,6 +257,17 @@ function BookingWidgetInner({
             margin: "0 auto",
           }}
         />
+      </div>
+    );
+  }
+
+  if (completionMode === "external" && flow.step === "confirm" && flow.result) {
+    return (
+      <div
+        aria-live="polite"
+        style={{ textAlign: "center", padding: "32px 0", fontSize: 14 }}
+      >
+        Booking completed.
       </div>
     );
   }

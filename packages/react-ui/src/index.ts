@@ -1,5 +1,5 @@
 // ── Main widget ──
-export { BookingWidget } from "./BookingWidget";
+export { BookingWidget, type CompletionMode } from "./BookingWidget";
 
 // ── Individual step components (for composable usage) ──
 export { ScheduleStep } from "./components/ScheduleStep";
