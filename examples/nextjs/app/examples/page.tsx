@@ -33,6 +33,13 @@ const examples = [
     description:
       "A specific staff member's booking page. Shows only their services, time slots grouped by location.",
   },
+  {
+    href: "/examples/callbacks",
+    title: "Callbacks & Custom Confirmation",
+    accent: "#2563eb",
+    description:
+      "Compare inline vs external confirmation and see lifecycle callbacks open host-owned modals.",
+  },
 ];
 
 export default function ExamplesPage() {
