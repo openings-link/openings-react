@@ -17,6 +17,11 @@ export interface BookingLabels {
   combineServices: string;
   combineServicesTitle: string;
   combineServicesSubmit: string;
+  selectServiceOption: string;
+  regularServiceOption: string;
+  applyServiceOption: string;
+  changeServiceOption: string;
+  showServiceOptions: (count: number) => string;
   consultationRequired: string;
   consultationNotice: string;
   sendRequest: string;
@@ -67,6 +72,12 @@ export const defaultLabels: BookingLabels = {
   combineServices: "＋ Custom (combine services)",
   combineServicesTitle: "Build Services",
   combineServicesSubmit: "Find Openings",
+  selectServiceOption: "Select an option",
+  regularServiceOption: "Regular",
+  applyServiceOption: "Apply",
+  changeServiceOption: "Option change",
+  showServiceOptions: (count) =>
+    `Show ${count} option${count === 1 ? "" : "s"} (optional)`,
   consultationRequired: "Consultation Required",
   consultationNotice:
     "This service requires a consultation. Send a request and we'll get back to you.",
