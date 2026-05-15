@@ -67,14 +67,15 @@ pnpm dev          # watch mode
 ## Branch, PR, and Release Flow
 
 - Use PRs into `main` for code changes, including release version bumps.
-- Repository merge mode is squash-only. After a squash merge, original branch
-  commits will not be ancestors of `main`; this is expected.
+- Repository merge mode may vary by GitHub settings. Use the merge method
+  currently allowed by the repository; as of May 2026, GitHub rejects squash
+  merges here, so use the allowed merge commit flow.
 - Treat local `main` as a clean mirror of `origin/main`. After merging a PR,
   preserve any local-only work on a branch before syncing local `main` to
   `origin/main`.
-- It is normal to use `git branch -D <branch>` when deleting local branches whose
-  changes were squash-merged; `git branch -d` may reject them because ancestry is
-  not preserved.
+- It is normal to use `git branch -D <branch>` when deleting local branches if
+  the branch was merged through a method that local Git does not recognize as a
+  direct ancestor.
 - Merging and publishing are separate. Merging to `main` must not publish npm
   packages by itself.
 - Publish only by pushing package tags after the matching version bump is already
