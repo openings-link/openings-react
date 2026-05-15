@@ -61,6 +61,7 @@ https://github.com/openings-link/openings-react/blob/main/docs/proxy-templates.m
 | `theme`                 | `BookingTheme`               | Accent color, border radius, font, light/dark mode.    |
 | `labels`                | `Partial<BookingLabels>`     | Override any user-facing string for i18n.              |
 | `features`              | `BookingFeatures`            | Optional capabilities, such as rescheduling.           |
+| `completionMode`        | `"inline" \| "external"`   | Use `external` to handle confirmation in the host app. |
 | `apiClient`             | `ApiClient`                  | Custom API client for testing or mock data.            |
 | `appointmentMetadata`   | `Record<string, string>`     | Extra metadata stored on created appointments.         |
 | `on`                    | `OpeningsCallbacks`          | Event callbacks for booking lifecycle.                 |
@@ -70,6 +71,29 @@ https://github.com/openings-link/openings-react/blob/main/docs/proxy-templates.m
 Appointments created through the widget automatically include
 `source: "openings-react"` metadata. Use `appointmentMetadata` for additional
 string fields such as an integration or campaign id.
+
+## Custom Confirmation
+
+By default, the widget shows its built-in confirmation scene after an appointment
+is created. Use `completionMode="external"` when the host app should own the
+confirmation page or modal:
+
+```tsx
+<BookingWidget
+  business="your-business-handle"
+  completionMode="external"
+  on={{
+    onBookingComplete: (result) => {
+      router.push(`/appointments/${result.appointmentId}/confirmed`);
+    },
+  }}
+/>
+```
+
+`onBookingComplete` still fires as soon as appointment creation succeeds. In
+external mode, the widget shows a brief completed state instead of rendering
+the built-in confirmation scene while the host app handles navigation or opens a
+custom modal.
 
 ## Optional Rescheduling
 
