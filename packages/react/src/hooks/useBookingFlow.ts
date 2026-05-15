@@ -144,6 +144,9 @@ export function useBookingFlow() {
     goToReview,
     goToVerify,
 
+    // Booking actions
+    ...booking,
+
     // Business
     business,
     businessLoading,
@@ -180,9 +183,6 @@ export function useBookingFlow() {
     nextAvailabilityLoading,
     nextAvailabilityError,
     clearNextAvailability,
-
-    // Booking actions
-    ...booking,
 
     // Global state
     loading: state.loading,

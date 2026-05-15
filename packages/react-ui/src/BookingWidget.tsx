@@ -258,7 +258,7 @@ function BookingWidgetInner({
     openings: (
       <OpeningsStep
         labels={labels}
-        onSlotSelected={flow.goToReview}
+        onSlotSelected={flow.goToVerify}
         onConsultationRequest={consultationHandler}
         onStaffInfoClick={onStaffInfoClick}
       />
@@ -287,7 +287,13 @@ function BookingWidgetInner({
           }}
         >
           <button
-            onClick={flow.goBack}
+            onClick={() => {
+              if (flow.step === "verify") {
+                flow.goTo("openings");
+                return;
+              }
+              flow.goBack();
+            }}
             type="button"
             className="openings-back"
             style={{
