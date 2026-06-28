@@ -12,13 +12,25 @@ const ALLOWED_PREFIXES = [
   "v1/media",
 ];
 
-/** Headers that should NOT be forwarded to the upstream API. */
+/**
+ * Headers that should NOT be forwarded to the upstream API.
+ *
+ * `content-length`, `content-encoding`, and `transfer-encoding` are stripped
+ * because the body is re-serialized via `req.text()`. Forwarding the original
+ * `content-length` makes undici `fetch` throw
+ * `UND_ERR_REQ_CONTENT_LENGTH_MISMATCH` (a 500 before any upstream request)
+ * when the re-encoded body's byte length differs from the client's header.
+ * Let undici recompute them.
+ */
 const STRIP_HEADERS = new Set([
   "host",
   "origin",
   "referer",
   "connection",
   "accept-encoding",
+  "content-length",
+  "content-encoding",
+  "transfer-encoding",
 ]);
 
 async function handler(
