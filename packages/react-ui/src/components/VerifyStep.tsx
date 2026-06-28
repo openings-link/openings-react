@@ -34,7 +34,6 @@ export function VerifyStep({ labels, features }: Props) {
     lookupCustomer,
     sendVerification,
     fetchVerifiedAppointmentHistory,
-    verify,
     registerCustomer,
     verifyPhase,
     book,
@@ -89,9 +88,10 @@ export function VerifyStep({ labels, features }: Props) {
   const handleVerifyAndBook = async () => {
     setSubmitting(true);
     try {
-      await verify(code);
+      // Pass code directly to book — the appointment endpoint verifies it.
+      // Do NOT call verify() separately; it consumes the OTP code.
       const customer = await registerCustomer({ firstName, lastName });
-      await book(undefined, customer.customerId);
+      await book(code, customer.customerId);
     } catch {
       // error is dispatched to state
     } finally {

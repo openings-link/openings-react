@@ -1,6 +1,6 @@
 {
   "name": "@openings-link/react-ui",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "Themed, drop-in React booking widget for Openings. Styled with CSS custom properties.",
   "author": "Openings <dev@openings.link> (https://openings.link)",
   "type": "module",
